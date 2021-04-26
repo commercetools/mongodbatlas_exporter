@@ -15,13 +15,13 @@ func (c *MockClient) GetDiskMeasurements() ([]*m.DiskMeasurements, m.ScrapeFailu
 	return c.givenDisksMeasurements, 3, nil
 }
 
-func (c *MockClient) GetDiskMeasurementsMetadata() ([]*m.MeasurementMetadata, error) {
-	return []*m.MeasurementMetadata{
-		{
+func (c *MockClient) GetDiskMeasurementsMetadata() (map[m.MeasurementID]*m.MeasurementMetadata, error) {
+	return map[m.MeasurementID]*m.MeasurementMetadata{
+		m.NewMeasurementID("DISK_PARTITION_IOPS_READ", "SCALAR_PER_SECOND"): {
 			Name:  "DISK_PARTITION_IOPS_READ",
 			Units: "SCALAR_PER_SECOND",
 		},
-		{
+		m.NewMeasurementID("DISK_PARTITION_SPACE_USED", "BYTES"): {
 			Name:  "DISK_PARTITION_SPACE_USED",
 			Units: "BYTES",
 		},

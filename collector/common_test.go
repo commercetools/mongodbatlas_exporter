@@ -83,9 +83,9 @@ func getExpectedDescs() []*prometheus.Desc {
 	return []*prometheus.Desc{upDesc, totalScrapesDesc, atlasScrapeFailuresDesc, measurementTransformationFailuresDesc, metricDesc}
 }
 
-func getGivenMeasurementMetadata() []*m.MeasurementMetadata {
-	return []*m.MeasurementMetadata{
-		{
+func getGivenMeasurementMetadata() map[m.MeasurementID]*m.MeasurementMetadata {
+	return map[m.MeasurementID]*m.MeasurementMetadata{
+		m.NewMeasurementID("DISK_PARTITION_IOPS_READ", "SCALAR_PER_SECOND"): {
 			Name:  "DISK_PARTITION_IOPS_READ",
 			Units: "SCALAR_PER_SECOND",
 		},

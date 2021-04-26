@@ -14,13 +14,13 @@ import (
 func (c *MockClient) GetProcessMeasurements() ([]*m.ProcessMeasurements, m.ScrapeFailures, error) {
 	return c.givenProcessesMeasurements, 3, nil
 }
-func (c *MockClient) GetProcessMeasurementsMetadata() ([]*m.MeasurementMetadata, error) {
-	return []*m.MeasurementMetadata{
-		{
+func (c *MockClient) GetProcessMeasurementsMetadata() (map[m.MeasurementID]*m.MeasurementMetadata, error) {
+	return map[m.MeasurementID]*m.MeasurementMetadata{
+		m.NewMeasurementID("TICKETS_AVAILABLE_READS", "SCALAR"): {
 			Name:  "TICKETS_AVAILABLE_READS",
 			Units: "SCALAR",
 		},
-		{
+		m.NewMeasurementID("QUERY_EXECUTOR_SCANNED", "SCALAR_PER_SECOND"): {
 			Name:  "QUERY_EXECUTOR_SCANNED",
 			Units: "SCALAR_PER_SECOND",
 		},
@@ -56,6 +56,8 @@ func getGivenProcessesMeasurements(value1 *float32) []*m.ProcessMeasurements {
 			ProjectID: "testProjectID",
 			RsName:    "testReplicaSet",
 			UserAlias: "cluster-host:27017",
+			Version:   "4.2.13",
+			TypeName:  "REPLICA_PRIMARY",
 			Measurements: map[m.MeasurementID]*m.Measurement{
 				"QUERY_EXECUTOR_SCANNED_SCALAR_PER_SECOND": &m.Measurement{
 					DataPoints: []*mongodbatlas.DataPoints{
@@ -121,5 +123,14 @@ func getExpectedProcessesMetrics(value float64) []prometheus.Metric {
 			nil),
 		prometheus.CounterValue,
 		1)
-	return []prometheus.Metric{processQueryExecutorScanned, processUp, totalScrapes, atlasScrapeFailures, measurementTransformationFailures}
+	processInfo := prometheus.MustNewConstMetric(
+		prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, processesPrefix, "info"),
+			infoHelp,
+			infoProcessLabels,
+			nil),
+		prometheus.GaugeValue,
+		1,
+		"testProjectID", "testReplicaSet", "cluster-host:27017", "4.2.13", "REPLICA_PRIMARY")
+	return []prometheus.Metric{processQueryExecutorScanned, processUp, totalScrapes, atlasScrapeFailures, processInfo, measurementTransformationFailures}
 }

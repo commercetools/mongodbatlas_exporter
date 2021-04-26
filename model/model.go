@@ -45,16 +45,16 @@ type DiskMeasurements struct {
 
 // ProcessMeasurements contains all measurements of one Process
 type ProcessMeasurements struct {
-	ProjectID, RsName, UserAlias string
-	Measurements                 map[MeasurementID]*Measurement
+	ProjectID, RsName, UserAlias, Version, TypeName string
+	Measurements                                    map[MeasurementID]*Measurement
 }
 
 // Client wraps mongodbatlas.Client
 type Client interface {
 	GetDiskMeasurements() ([]*DiskMeasurements, ScrapeFailures, error)
 	GetProcessMeasurements() ([]*ProcessMeasurements, ScrapeFailures, error)
-	GetDiskMeasurementsMetadata() ([]*MeasurementMetadata, error)
-	GetProcessMeasurementsMetadata() ([]*MeasurementMetadata, error)
+	GetDiskMeasurementsMetadata() (map[MeasurementID]*MeasurementMetadata, error)
+	GetProcessMeasurementsMetadata() (map[MeasurementID]*MeasurementMetadata, error)
 }
 
 // MeasurementMetadata contains Measurements.Name and Measurements.Unit

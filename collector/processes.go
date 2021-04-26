@@ -11,12 +11,17 @@ import (
 )
 
 var defaultProcessLabels = []string{"project_id", "rs_name", "user_alias"}
+var infoProcessLabels = []string{"project_id", "rs_name", "user_alias", "version", "type"}
 
-const processesPrefix = "processes_stats"
+const (
+	processesPrefix = "processes_stats"
+	infoHelp        = "Process info metric"
+)
 
 // Processes information struct
 type Processes struct {
 	*basicCollector
+	info *prometheus.GaugeVec
 }
 
 // NewProcesses creates Process Prometheus metrics
@@ -32,7 +37,15 @@ func NewProcesses(logger log.Logger, client m.Client) (*Processes, error) {
 	if err != nil {
 		return nil, err
 	}
-	processes := &Processes{basicCollector}
+	processes := &Processes{
+		basicCollector: basicCollector,
+		info: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: prometheus.BuildFQName(namespace, processesPrefix, "info"),
+				Help: infoHelp,
+			},
+			infoProcessLabels),
+	}
 
 	return processes, nil
 }
@@ -76,5 +89,20 @@ func (c *Processes) Collect(ch chan<- prometheus.Metric) {
 				processMeasurements.ProjectID, processMeasurements.RsName, processMeasurements.UserAlias,
 			)
 		}
+
+		infoGauge := c.info.WithLabelValues(
+			processMeasurements.ProjectID,
+			processMeasurements.RsName,
+			processMeasurements.UserAlias,
+			processMeasurements.Version,
+			processMeasurements.TypeName)
+		infoGauge.Set(1)
+		ch <- infoGauge
 	}
+}
+
+// Describe implements prometheus.Collector.
+func (c *Processes) Describe(ch chan<- *prometheus.Desc) {
+	c.basicCollector.Describe(ch)
+	c.info.Describe(ch)
 }
