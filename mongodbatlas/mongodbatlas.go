@@ -5,6 +5,7 @@ import (
 	"errors"
 	m "mongodbatlas_exporter/model"
 	"strconv"
+	"strings"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
@@ -21,11 +22,12 @@ var opts = &mongodbatlas.ProcessMeasurementListOptions{
 type AtlasClient struct {
 	mongodbatlasClient *mongodbatlas.Client
 	projectID          string
+	atlasClusters      []string
 	logger             log.Logger
 }
 
 // NewClient returns wrapper around mongodbatlas.Client, which implements necessary functionality
-func NewClient(logger log.Logger, publicKey string, privateKey string, projectID string) (*AtlasClient, error) {
+func NewClient(logger log.Logger, publicKey string, privateKey string, projectID string, atlasClusters []string) (*AtlasClient, error) {
 	t := digest.NewTransport(publicKey, privateKey)
 	tc, err := t.Client()
 	if err != nil {
@@ -38,6 +40,7 @@ func NewClient(logger log.Logger, publicKey string, privateKey string, projectID
 	return &AtlasClient{
 		mongodbatlasClient: mongodbatlasClient,
 		projectID:          projectID,
+		atlasClusters:      atlasClusters,
 		logger:             logger,
 	}, nil
 }
@@ -49,7 +52,18 @@ func (c *AtlasClient) listProcesses() ([]*mongodbatlas.Process, error) {
 		level.Error(c.logger).Log("msg", msg, "project", c.projectID, "err", err)
 		return nil, errors.New(msg)
 	}
-	return processes, nil
+	if len(c.atlasClusters) == 0 {
+		return processes, nil
+	}
+	filteredProceses := make([]*mongodbatlas.Process, 0, len(processes))
+	for _, clusterName := range c.atlasClusters {
+		for _, process := range processes {
+			if strings.HasPrefix(process.UserAlias, clusterName) {
+				filteredProceses = append(filteredProceses, process)
+			}
+		}
+	}
+	return filteredProceses, nil
 }
 
 func (c *AtlasClient) listDisks(host string, port int) ([]*mongodbatlas.ProcessDisk, error) {
