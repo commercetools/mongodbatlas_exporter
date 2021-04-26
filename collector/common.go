@@ -36,7 +36,7 @@ type basicCollector struct {
 }
 
 // newBasicCollector creates basicCollector
-func newBasicCollector(logger log.Logger, client m.Client, measurementsMetadata []*m.MeasurementMetadata, defaultLabels []string, collectorPrefix string) (*basicCollector, error) {
+func newBasicCollector(logger log.Logger, client m.Client, measurementsMetadata map[m.MeasurementID]*m.MeasurementMetadata, defaultLabels []string, collectorPrefix string) (*basicCollector, error) {
 	var metrics []*metric
 	for _, measurementMetadata := range measurementsMetadata {
 		promName, err := transformer.TransformName(measurementMetadata)

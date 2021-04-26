@@ -20,11 +20,12 @@ const (
 )
 
 var (
-	listenAddress   = kingpin.Flag("listen-address", "Address to listen on for web interface").Default(":19120").Envar("LISTEN_ADDRESS").String()
+	listenAddress   = kingpin.Flag("listen-address", "Address to listen on for web interface").Default(":9905").Envar("LISTEN_ADDRESS").String()
 	atlasPublicKey  = kingpin.Flag("atlas.public-key", "Address to listen on for web interface").Envar("ATLAS_PUBLIC_KEY").String()
 	atlasPrivateKey = kingpin.Flag("atlas.private-key", "Address to listen on for web interface").Envar("ATLAS_PRIVATE_KEY").String()
 	atlasGroupID    = kingpin.Flag("atlas.group-id", "Project ID").Envar("GROUP_ID").String()
-	logLevel        = kingpin.Flag("log-level", "Printed logs level.").Default("debug").Enum("error", "warn", "info", "debug")
+	// atlasClusters   = kingpin.Flag("atlas.clusters", "List of clusters to scrape metrics from").Envar("CLUSTERS")
+	logLevel = kingpin.Flag("log-level", "Printed logs level.").Default("debug").Enum("error", "warn", "info", "debug")
 )
 
 func main() {
