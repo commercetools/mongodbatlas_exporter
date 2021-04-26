@@ -1,0 +1,53 @@
+version: '3.7'
+
+volumes:
+    prometheus_data: {}
+    grafana_data: {}
+
+services:
+  mongodbatlas-exporter:
+    build: ..
+    image: mongodbatlas-exporter:latest
+    container_name: mongodbatlas-exporter
+    # command:
+    #   - "--atlas.public-key"
+    #   - "XXXXXXXX"
+    #   - "--atlas.private-key"
+    #   - "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+    #   - "--atlas.group-id"
+    #   - "xxxxxxxxxxxxxxxxxxxxxxxx"
+    ports:
+      - 9905:9905
+    restart: always
+
+  prometheus:
+    image: prom/prometheus:v2.1.0
+    container_name: prometheus
+    volumes:
+      - ./prometheus/:/etc/prometheus/
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - 9090:9090
+    restart: always
+    depends_on:
+      - mongodbatlas-exporter
+
+  grafana:
+    image: grafana/grafana:7.5.2
+    container_name: grafana
+    user: "0"
+    depends_on:
+      - prometheus
+    ports:
+      - 3000:3000
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning/:/etc/grafana/provisioning/
+    env_file:
+      - ./grafana/env.grafana
+    restart: always
