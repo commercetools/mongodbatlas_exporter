@@ -1,7 +1,7 @@
 DOCKER_IMAGE_NAME ?= mongodbatlas-exporter
 DOCKER_IMAGE_TAG ?= 0.0.1
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64
-BIN_DIR=/bin
+BIN_DIR=.
 BIN=mongodbatlas_exporter
 
 .PHONY: test

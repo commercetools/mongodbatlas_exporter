@@ -20,5 +20,5 @@ jobs:
     - name: Upload files
       uses: AButler/upload-release-assets@v2.0
       with:
-        files: '/bin/mongodbatlas_exporter'
+        files: './mongodbatlas_exporter'
         repo-token: ${{ secrets.GITHUB_TOKEN }}
