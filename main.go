@@ -23,7 +23,7 @@ var (
 	listenAddress   = kingpin.Flag("listen-address", "Address to listen on for web interface").Default(":9905").Envar("LISTEN_ADDRESS").String()
 	atlasPublicKey  = kingpin.Flag("atlas.public-key", "Address to listen on for web interface").Envar("ATLAS_PUBLIC_KEY").String()
 	atlasPrivateKey = kingpin.Flag("atlas.private-key", "Address to listen on for web interface").Envar("ATLAS_PRIVATE_KEY").String()
-	atlasGroupID    = kingpin.Flag("atlas.group-id", "Project ID").Envar("GROUP_ID").String()
+	atlasProjectID  = kingpin.Flag("atlas.project-id", "Project ID").Envar("ATLAS_PROJECT_ID").String()
 	atlasClusters   = kingpin.Flag("atlas.cluster", "Cluster to scrape metrics from, for multiple clusters define this flag multiple times").Strings()
 	logLevel        = kingpin.Flag("log-level", "Printed logs level.").Default("debug").Enum("error", "warn", "info", "debug")
 )
@@ -41,7 +41,7 @@ func main() {
 	versionMetric := version.NewCollector(name)
 	prometheus.MustRegister(versionMetric)
 
-	client, err := mongodbatlas.NewClient(logger, *atlasPublicKey, *atlasPrivateKey, *atlasGroupID, *atlasClusters)
+	client, err := mongodbatlas.NewClient(logger, *atlasPublicKey, *atlasPrivateKey, *atlasProjectID, *atlasClusters)
 	if err != nil {
 		level.Error(logger).Log("msg", "failed to create MongoDB Atlas client", "err", err)
 		os.Exit(1)
