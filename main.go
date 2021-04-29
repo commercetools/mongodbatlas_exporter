@@ -20,11 +20,11 @@ const (
 )
 
 var (
-	listenAddress   = kingpin.Flag("listen-address", "Address to listen on for web interface").Default(":9905").Envar("LISTEN_ADDRESS").String()
-	atlasPublicKey  = kingpin.Flag("atlas.public-key", "Address to listen on for web interface").Envar("ATLAS_PUBLIC_KEY").String()
-	atlasPrivateKey = kingpin.Flag("atlas.private-key", "Address to listen on for web interface").Envar("ATLAS_PRIVATE_KEY").String()
-	atlasProjectID  = kingpin.Flag("atlas.project-id", "Project ID").Envar("ATLAS_PROJECT_ID").String()
-	atlasClusters   = kingpin.Flag("atlas.cluster", "Cluster to scrape metrics from, for multiple clusters define this flag multiple times").Strings()
+	listenAddress   = kingpin.Flag("listen-address", "The address to listen on for HTTP requests.").Default(":9905").Envar("LISTEN_ADDRESS").String()
+	atlasPublicKey  = kingpin.Flag("atlas.public-key", "Atlas API public key").Envar("ATLAS_PUBLIC_KEY").String()
+	atlasPrivateKey = kingpin.Flag("atlas.private-key", "Atlas API private key").Envar("ATLAS_PRIVATE_KEY").String()
+	atlasProjectID  = kingpin.Flag("atlas.project-id", "Atlas project id (group id) to scrape metrics from").Envar("ATLAS_PROJECT_ID").String()
+	atlasClusters   = kingpin.Flag("atlas.cluster", "Atlas cluster name to scrape metrics from. Can be defined multiple times. If not defined all clusters in the project will be scraped").Strings()
 	logLevel        = kingpin.Flag("log-level", "Printed logs level.").Default("debug").Enum("error", "warn", "info", "debug")
 )
 

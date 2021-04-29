@@ -14,7 +14,7 @@ services:
     #   - "XXXXXXXX"
     #   - "--atlas.private-key"
     #   - "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-    #   - "--atlas.group-id"
+    #   - "--atlas.project-id"
     #   - "xxxxxxxxxxxxxxxxxxxxxxxx"
     ports:
       - 9905:9905
