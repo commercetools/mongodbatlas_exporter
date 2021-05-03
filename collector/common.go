@@ -4,6 +4,7 @@ import (
 	"errors"
 	transformer "mongodbatlas_exporter/collector/transformer"
 	m "mongodbatlas_exporter/model"
+	"strings"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
@@ -39,6 +40,15 @@ type basicCollector struct {
 func newBasicCollector(logger log.Logger, client m.Client, measurementsMetadata map[m.MeasurementID]*m.MeasurementMetadata, defaultLabels []string, collectorPrefix string) (*basicCollector, error) {
 	var metrics []*metric
 	for _, measurementMetadata := range measurementsMetadata {
+
+		// FTS_* metrics are for Atlas' full text search which we
+		// do not currently use at the moment. However, the metric always
+		// reports empty which causes an error to be logged.
+		// TODO: allow turning this on and off.
+		if strings.HasPrefix(measurementMetadata.Name, "FTS_") {
+			continue
+		}
+
 		promName, err := transformer.TransformName(measurementMetadata)
 		if err != nil {
 			msg := "can't transform measurement Name into metric name"
