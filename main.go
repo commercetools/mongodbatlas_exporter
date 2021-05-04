@@ -25,7 +25,7 @@ var (
 	atlasPrivateKey = kingpin.Flag("atlas.private-key", "Atlas API private key").Envar("ATLAS_PRIVATE_KEY").String()
 	atlasProjectID  = kingpin.Flag("atlas.project-id", "Atlas project id (group id) to scrape metrics from").Envar("ATLAS_PROJECT_ID").String()
 	atlasClusters   = kingpin.Flag("atlas.cluster", "Atlas cluster name to scrape metrics from. Can be defined multiple times. If not defined all clusters in the project will be scraped").Strings()
-	logLevel        = kingpin.Flag("log-level", "Printed logs level.").Default("debug").Enum("error", "warn", "info", "debug")
+	logLevel        = kingpin.Flag("log-level", "Printed logs level.").Default("warn").Enum("error", "warn", "info", "debug")
 )
 
 func main() {
