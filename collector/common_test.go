@@ -61,17 +61,17 @@ func getExpectedDescs() []*prometheus.Desc {
 		nil,
 		nil)
 	totalScrapesDesc := prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, testPrefix, "total_scrapes"),
+		prometheus.BuildFQName(namespace, testPrefix, "scrapes_total"),
 		totalScrapesHelp,
 		nil,
 		nil)
 	scrapeFailuresDesc := prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, testPrefix, "atlas_scrape_failures"),
+		prometheus.BuildFQName(namespace, testPrefix, "scrape_failures_total"),
 		scrapeFailuresHelp,
 		nil,
 		nil)
 	measurementTransformationFailuresDesc := prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, testPrefix, "measurement_transformation_failures"),
+		prometheus.BuildFQName(namespace, testPrefix, "measurement_transformation_failures_total"),
 		measurementTransformationFailuresHelp,
 		nil,
 		nil)
