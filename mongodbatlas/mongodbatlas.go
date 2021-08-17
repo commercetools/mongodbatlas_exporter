@@ -69,9 +69,7 @@ func (c *AtlasClient) listProcesses() ([]*mongodbatlas.Process, error) {
 func (c *AtlasClient) listDisks(host string, port int) ([]*mongodbatlas.ProcessDisk, error) {
 	disks, _, err := c.mongodbatlasClient.ProcessDisks.List(context.Background(), c.projectID, host, port, nil)
 	if err != nil {
-		msg := "failed to list disks of the process"
-		level.Error(c.logger).Log("msg", msg, "process", host, "port", port, "err", err)
-		return nil, errors.New(msg)
+		return nil, err
 	}
 	return disks.Results, nil
 }
@@ -79,9 +77,7 @@ func (c *AtlasClient) listDisks(host string, port int) ([]*mongodbatlas.ProcessD
 func (c *AtlasClient) listProcessDiskMeasurements(host string, port int, diskName string) (*mongodbatlas.ProcessDiskMeasurements, error) {
 	measurements, _, err := c.mongodbatlasClient.ProcessDiskMeasurements.List(context.Background(), c.projectID, host, port, diskName, opts)
 	if err != nil {
-		msg := "failed to list measurements of the disk"
-		level.Error(c.logger).Log("msg", msg, "disk", diskName, "err", err)
-		return nil, errors.New(msg)
+		return nil, err
 	}
 	return measurements, nil
 }
@@ -89,9 +85,7 @@ func (c *AtlasClient) listProcessDiskMeasurements(host string, port int, diskNam
 func (c *AtlasClient) listProcessMeasurements(host string, port int) (*mongodbatlas.ProcessMeasurements, error) {
 	measurements, _, err := c.mongodbatlasClient.ProcessMeasurements.List(context.Background(), c.projectID, host, port, opts)
 	if err != nil {
-		msg := "failed to list measurements of the process"
-		level.Error(c.logger).Log("msg", msg, "host", host, "err", err)
-		return nil, errors.New(msg)
+		return nil, err
 	}
 	return measurements, nil
 }
@@ -109,13 +103,14 @@ func (c *AtlasClient) GetDiskMeasurements() ([]*m.DiskMeasurements, m.ScrapeFail
 	for _, process := range processes {
 		disks, err := c.listDisks(process.Hostname, process.Port)
 		if err != nil {
+			level.Error(c.logger).Log("msg", "failed to list disks of the process", "process", process.Hostname, "port", process.Port, "err", err)
 			return nil, 0, err
 		}
 		for _, disk := range disks {
 			measurements, err := c.listProcessDiskMeasurements(process.Hostname, process.Port, disk.PartitionName)
 			if err != nil {
 				scrapeFailures++
-				level.Error(c.logger).Log("msg", "failed to scrape measurements for the disk, skipping", "disk", disk.PartitionName, "err", err)
+				level.Warn(c.logger).Log("msg", "failed to scrape measurements for the disk, skipping", "disk", disk.PartitionName, "err", err)
 				continue
 			}
 			diskMeasurements := make(map[m.MeasurementID]*m.Measurement, len(measurements.Measurements))
@@ -153,7 +148,7 @@ func (c *AtlasClient) GetProcessMeasurements() ([]*m.ProcessMeasurements, m.Scra
 		measurements, err := c.listProcessMeasurements(process.Hostname, process.Port)
 		if err != nil {
 			scrapeFailures++
-			level.Error(c.logger).Log("msg", "failed to scrape measurements for the host, skipping", "host", process.Hostname, "port", process.Port, "err", err)
+			level.Warn(c.logger).Log("msg", "failed to scrape measurements for the host, skipping", "host", process.Hostname, "port", process.Port, "err", err)
 			continue
 		}
 		processMeasurements := make(map[m.MeasurementID]*m.Measurement, len(measurements.Measurements))

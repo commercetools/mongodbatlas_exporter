@@ -101,23 +101,23 @@ func getExpectedProcessesMetrics(value float64) []prometheus.Metric {
 		1)
 	totalScrapes := prometheus.MustNewConstMetric(
 		prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, processesPrefix, "total_scrapes"),
+			prometheus.BuildFQName(namespace, processesPrefix, "scrapes_total"),
 			totalScrapesHelp,
 			nil,
 			nil),
 		prometheus.CounterValue,
 		1)
-	atlasScrapeFailures := prometheus.MustNewConstMetric(
+	scrapeFailures := prometheus.MustNewConstMetric(
 		prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, processesPrefix, "atlas_scrape_failures"),
-			atlasScrapeFailuresHelp,
+			prometheus.BuildFQName(namespace, processesPrefix, "scrape_failures_total"),
+			scrapeFailuresHelp,
 			nil,
 			nil),
 		prometheus.CounterValue,
 		3)
 	measurementTransformationFailures := prometheus.MustNewConstMetric(
 		prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, processesPrefix, "measurement_transformation_failures"),
+			prometheus.BuildFQName(namespace, processesPrefix, "measurement_transformation_failures_total"),
 			measurementTransformationFailuresHelp,
 			nil,
 			nil),
@@ -132,5 +132,5 @@ func getExpectedProcessesMetrics(value float64) []prometheus.Metric {
 		prometheus.GaugeValue,
 		1,
 		"testProjectID", "testReplicaSet", "cluster-host:27017", "4.2.13", "REPLICA_PRIMARY")
-	return []prometheus.Metric{processQueryExecutorScanned, processUp, totalScrapes, atlasScrapeFailures, processInfo, measurementTransformationFailures}
+	return []prometheus.Metric{processQueryExecutorScanned, processUp, totalScrapes, scrapeFailures, processInfo, measurementTransformationFailures}
 }
