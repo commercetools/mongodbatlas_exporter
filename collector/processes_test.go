@@ -107,10 +107,10 @@ func getExpectedProcessesMetrics(value float64) []prometheus.Metric {
 			nil),
 		prometheus.CounterValue,
 		1)
-	atlasScrapeFailures := prometheus.MustNewConstMetric(
+	scrapeFailures := prometheus.MustNewConstMetric(
 		prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, processesPrefix, "atlas_scrape_failures"),
-			atlasScrapeFailuresHelp,
+			scrapeFailuresHelp,
 			nil,
 			nil),
 		prometheus.CounterValue,
@@ -132,5 +132,5 @@ func getExpectedProcessesMetrics(value float64) []prometheus.Metric {
 		prometheus.GaugeValue,
 		1,
 		"testProjectID", "testReplicaSet", "cluster-host:27017", "4.2.13", "REPLICA_PRIMARY")
-	return []prometheus.Metric{processQueryExecutorScanned, processUp, totalScrapes, atlasScrapeFailures, processInfo, measurementTransformationFailures}
+	return []prometheus.Metric{processQueryExecutorScanned, processUp, totalScrapes, scrapeFailures, processInfo, measurementTransformationFailures}
 }

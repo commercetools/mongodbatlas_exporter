@@ -25,7 +25,7 @@ var (
 	atlasPrivateKey = kingpin.Flag("atlas.private-key", "Atlas API private key").Envar("ATLAS_PRIVATE_KEY").String()
 	atlasProjectID  = kingpin.Flag("atlas.project-id", "Atlas project id (group id) to scrape metrics from").Envar("ATLAS_PROJECT_ID").String()
 	atlasClusters   = kingpin.Flag("atlas.cluster", "Atlas cluster name to scrape metrics from. Can be defined multiple times. If not defined all clusters in the project will be scraped").Strings()
-	logLevel        = kingpin.Flag("log-level", "Printed logs level.").Default("warn").Enum("error", "warn", "info", "debug")
+	logLevel        = kingpin.Flag("log-level", "Printed logs level.").Default("info").Enum("error", "warn", "info", "debug")
 )
 
 func main() {
@@ -64,7 +64,9 @@ func main() {
 	http.Handle("/metrics", promhttp.Handler())
 
 	if err := http.ListenAndServe(*listenAddress, nil); err != nil {
-		level.Error(logger).Log("msg", "failed to start the server", "err", err)
+		level.Error(logger).Log("msg", "failed to start the http server", "err", err)
 		os.Exit(1)
 	}
+
+	level.Info(logger).Log("msg", "successfully started http server", "address", listenAddress)
 }

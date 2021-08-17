@@ -56,7 +56,7 @@ func (c *Processes) Collect(ch chan<- prometheus.Metric) {
 	defer func() {
 		ch <- c.up
 		ch <- c.totalScrapes
-		ch <- c.atlasScrapeFailures
+		ch <- c.scrapeFailures
 		ch <- c.measurementTransformationFailures
 	}()
 
@@ -65,20 +65,22 @@ func (c *Processes) Collect(ch chan<- prometheus.Metric) {
 		c.up.Set(0)
 	}
 	c.up.Set(1)
-	c.atlasScrapeFailures.Add(float64(failedScrapes))
+	c.scrapeFailures.Add(float64(failedScrapes))
 
 	for _, processMeasurements := range processesMeasurements {
 		for _, metric := range c.metrics {
 			measurement, ok := processMeasurements.Measurements[metric.Metadata.ID()]
 			if !ok {
 				c.measurementTransformationFailures.Inc()
-				level.Info(c.logger).Log("msg", "skipping metric because can't find matching measurement", "metric", metric.Desc, "err", err)
+				level.Warn(c.logger).Log("msg", `skipping metric because can't find matching measurement.
+					It seems to be not initialized during exporter start, you should restart the exporter`,
+					"metric", metric.Desc, "err", err)
 				continue
 			}
 			value, err := transformer.TransformValue(measurement)
 			if err != nil {
 				c.measurementTransformationFailures.Inc()
-				level.Info(c.logger).Log("msg", "skipping metric because of value transformation failure", "metric", metric.Desc, "measurement", measurement, "err", err)
+				level.Warn(c.logger).Log("msg", "skipping metric because of value transformation failure", "metric", metric.Desc, "measurement", measurement, "err", err)
 				continue
 			}
 

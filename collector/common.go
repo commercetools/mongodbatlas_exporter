@@ -15,7 +15,7 @@ const (
 
 	upHelp                                = "Was the last communication with MongoDB Atlas API successful."
 	totalScrapesHelp                      = "Current total MongoDB Atlas scrapes."
-	atlasScrapeFailuresHelp               = "Number of unsuccessful measurement scrapes from MongoDB Atlas API."
+	scrapeFailuresHelp                    = "Number of unsuccessful measurement scrapes from MongoDB Atlas API."
 	defaultHelp                           = "Please see MongoDB Atlas documentation for details about the measurement"
 	measurementTransformationFailuresHelp = "Number of errors during transformation of scraped MongoDB Atlas measurements into Prometheus metrics."
 )
@@ -30,9 +30,9 @@ type basicCollector struct {
 	client m.Client
 	logger log.Logger
 
-	up                                                                   prometheus.Gauge
-	totalScrapes, atlasScrapeFailures, measurementTransformationFailures prometheus.Counter
-	metrics                                                              []*metric
+	up                                                              prometheus.Gauge
+	totalScrapes, scrapeFailures, measurementTransformationFailures prometheus.Counter
+	metrics                                                         []*metric
 }
 
 // newBasicCollector creates basicCollector
@@ -70,15 +70,15 @@ func newBasicCollector(logger log.Logger, client m.Client, measurementsMetadata 
 			Help: upHelp,
 		}),
 		totalScrapes: prometheus.NewCounter(prometheus.CounterOpts{
-			Name: prometheus.BuildFQName(namespace, collectorPrefix, "total_scrapes"),
+			Name: prometheus.BuildFQName(namespace, collectorPrefix, "scrapes_total"),
 			Help: totalScrapesHelp,
 		}),
-		atlasScrapeFailures: prometheus.NewCounter(prometheus.CounterOpts{
-			Name: prometheus.BuildFQName(namespace, collectorPrefix, "atlas_scrape_failures"),
-			Help: atlasScrapeFailuresHelp,
+		scrapeFailures: prometheus.NewCounter(prometheus.CounterOpts{
+			Name: prometheus.BuildFQName(namespace, collectorPrefix, "scrape_failures_total"),
+			Help: scrapeFailuresHelp,
 		}),
 		measurementTransformationFailures: prometheus.NewCounter(prometheus.CounterOpts{
-			Name: prometheus.BuildFQName(namespace, collectorPrefix, "measurement_transformation_failures"),
+			Name: prometheus.BuildFQName(namespace, collectorPrefix, "measurement_transformation_failures_total"),
 			Help: measurementTransformationFailuresHelp,
 		}),
 		metrics: metrics,
@@ -92,7 +92,7 @@ func newBasicCollector(logger log.Logger, client m.Client, measurementsMetadata 
 func (c *basicCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.up.Desc()
 	ch <- c.totalScrapes.Desc()
-	ch <- c.atlasScrapeFailures.Desc()
+	ch <- c.scrapeFailures.Desc()
 	ch <- c.measurementTransformationFailures.Desc()
 
 	for _, metric := range c.metrics {

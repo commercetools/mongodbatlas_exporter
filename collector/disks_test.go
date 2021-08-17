@@ -107,10 +107,10 @@ func getExpectedDisksMetrics(value float64) []prometheus.Metric {
 			nil),
 		prometheus.CounterValue,
 		1)
-	atlasScrapeFailures := prometheus.MustNewConstMetric(
+	scrapeFailures := prometheus.MustNewConstMetric(
 		prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, disksPrefix, "atlas_scrape_failures"),
-			atlasScrapeFailuresHelp,
+			scrapeFailuresHelp,
 			nil,
 			nil),
 		prometheus.CounterValue,
@@ -123,5 +123,5 @@ func getExpectedDisksMetrics(value float64) []prometheus.Metric {
 			nil),
 		prometheus.CounterValue,
 		1)
-	return []prometheus.Metric{diskPartitionIopsReadRate, diskUp, totalScrapes, atlasScrapeFailures, measurementTransformationFailures}
+	return []prometheus.Metric{diskPartitionIopsReadRate, diskUp, totalScrapes, scrapeFailures, measurementTransformationFailures}
 }

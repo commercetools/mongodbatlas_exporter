@@ -65,9 +65,9 @@ func getExpectedDescs() []*prometheus.Desc {
 		totalScrapesHelp,
 		nil,
 		nil)
-	atlasScrapeFailuresDesc := prometheus.NewDesc(
+	scrapeFailuresDesc := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, testPrefix, "atlas_scrape_failures"),
-		atlasScrapeFailuresHelp,
+		scrapeFailuresHelp,
 		nil,
 		nil)
 	measurementTransformationFailuresDesc := prometheus.NewDesc(
@@ -80,7 +80,7 @@ func getExpectedDescs() []*prometheus.Desc {
 		"Original measurements.name: 'DISK_PARTITION_IOPS_READ'. "+defaultHelp,
 		defaultTestLabels,
 		nil)
-	return []*prometheus.Desc{upDesc, totalScrapesDesc, atlasScrapeFailuresDesc, measurementTransformationFailuresDesc, metricDesc}
+	return []*prometheus.Desc{upDesc, totalScrapesDesc, scrapeFailuresDesc, measurementTransformationFailuresDesc, metricDesc}
 }
 
 func getGivenMeasurementMetadata() map[m.MeasurementID]*m.MeasurementMetadata {
