@@ -1,7 +1,6 @@
 package collector
 
 import (
-	"errors"
 	transformer "mongodbatlas_exporter/collector/transformer"
 	m "mongodbatlas_exporter/model"
 
@@ -28,9 +27,7 @@ type Processes struct {
 func NewProcesses(logger log.Logger, client m.Client) (*Processes, error) {
 	measurementsMetadata, err := client.GetProcessMeasurementsMetadata()
 	if err != nil {
-		msg := "can't initialize process metrics"
-		level.Error(logger).Log("msg", msg, "reason", "GetProcessMeasurementsMetadata returned error", "err", err)
-		return nil, errors.New(msg)
+		return nil, err
 	}
 
 	basicCollector, err := newBasicCollector(logger, client, measurementsMetadata, defaultProcessLabels, processesPrefix)

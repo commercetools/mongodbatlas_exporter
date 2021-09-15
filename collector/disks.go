@@ -1,7 +1,6 @@
 package collector
 
 import (
-	"errors"
 	transformer "mongodbatlas_exporter/collector/transformer"
 	m "mongodbatlas_exporter/model"
 
@@ -23,9 +22,7 @@ type Disks struct {
 func NewDisks(logger log.Logger, client m.Client) (*Disks, error) {
 	measurementsMetadata, err := client.GetDiskMeasurementsMetadata()
 	if err != nil {
-		msg := "can't initialize disk metrics"
-		level.Error(logger).Log("msg", msg, "reason", "GetDiskMeasurementsMetadata returned error", "err", err)
-		return nil, errors.New(msg)
+		return nil, err
 	}
 
 	basicCollector, err := newBasicCollector(logger, client, measurementsMetadata, defaultDiskLabels, disksPrefix)
