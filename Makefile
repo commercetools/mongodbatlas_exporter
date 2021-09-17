@@ -13,7 +13,7 @@ test:
 
 docker:
 	@echo ">> building docker image"
-	docker build -t "$(DOCKER_IMAGE_NAME):$(VERSION)"
+	docker build -t "$(DOCKER_IMAGE_NAME):$(VERSION)" .
 
 build:
 	CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo \
