@@ -18,8 +18,7 @@ import (
 )
 
 const (
-	name       = "mongodbatlas_exporter"
-	appVersion = "0.0.1"
+	name = "mongodbatlas_exporter"
 )
 
 var (
@@ -38,7 +37,7 @@ var (
 )
 
 func main() {
-	kingpin.Version(appVersion)
+	kingpin.Version(version.Print(name))
 	kingpin.Parse()
 
 	logger, err := createLogger(*logLevel)
@@ -47,8 +46,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	versionMetric := version.NewCollector(name)
-	prometheus.MustRegister(versionMetric)
+	prometheus.MustRegister(version.NewCollector(name))
 
 	client, err := mongodbatlas.NewClient(logger, *atlasPublicKey, *atlasPrivateKey, *atlasProjectID, *atlasClusters)
 	if err != nil {
