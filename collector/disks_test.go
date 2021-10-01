@@ -15,8 +15,8 @@ func (c *MockClient) GetDiskMeasurements() ([]*m.DiskMeasurements, m.ScrapeFailu
 	return c.givenDisksMeasurements, 3, nil
 }
 
-func (c *MockClient) GetDiskMeasurementsMetadata() (map[m.MeasurementID]*m.MeasurementMetadata, error) {
-	return map[m.MeasurementID]*m.MeasurementMetadata{
+func (c *MockClient) GetDiskMeasurementMap() (m.MeasurementMap, error) {
+	return m.MeasurementMap{
 		m.NewMeasurementID("DISK_PARTITION_IOPS_READ", "SCALAR_PER_SECOND"): {
 			Name:  "DISK_PARTITION_IOPS_READ",
 			Units: "SCALAR_PER_SECOND",

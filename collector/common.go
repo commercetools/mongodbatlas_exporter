@@ -1,7 +1,7 @@
 package collector
 
 import (
-	"errors"
+	"fmt"
 	transformer "mongodbatlas_exporter/collector/transformer"
 	m "mongodbatlas_exporter/model"
 
@@ -23,48 +23,24 @@ const (
 type metric struct {
 	Type     prometheus.ValueType
 	Desc     *prometheus.Desc
-	Metadata *m.MeasurementMetadata
+	Metadata *m.Measurement
 }
 
 type basicCollector struct {
-	client m.Client
-	logger log.Logger
-
+	client                                                          m.Client
+	logger                                                          log.Logger
+	prefix                                                          string
+	defaultLabels                                                   []string
 	up                                                              prometheus.Gauge
 	totalScrapes, scrapeFailures, measurementTransformationFailures prometheus.Counter
 	metrics                                                         []*metric
 }
 
 // newBasicCollector creates basicCollector
-func newBasicCollector(logger log.Logger, client m.Client, measurementsMetadata map[m.MeasurementID]*m.MeasurementMetadata, defaultLabels []string, collectorPrefix string) (*basicCollector, error) {
-	var metrics []*metric
-	for _, measurementMetadata := range measurementsMetadata {
-		promName, err := transformer.TransformName(measurementMetadata)
-		if err != nil {
-			msg := "can't transform measurement Name into metric name"
-			level.Error(logger).Log("msg", msg, "measurementMetadata", measurementMetadata, "err", err)
-			return nil, errors.New(msg)
-		}
-		promType, err := transformer.TransformType(measurementMetadata)
-		if err != nil {
-			msg := "can't transform measurement Units into prometheus.ValueType"
-			level.Error(logger).Log("msg", msg, "measurementMetadata", measurementMetadata, "err", err)
-			return nil, errors.New(msg)
-		}
-
-		metric := metric{
-			Type: promType,
-			Desc: prometheus.NewDesc(
-				prometheus.BuildFQName(namespace, collectorPrefix, promName),
-				"Original measurements.name: '"+measurementMetadata.Name+"'. "+defaultHelp,
-				defaultLabels, nil,
-			),
-			Metadata: measurementMetadata,
-		}
-		metrics = append(metrics, &metric)
-	}
-
-	return &basicCollector{
+func newBasicCollector(logger log.Logger, client m.Client, measurementMap m.MeasurementMap, defaultLabels []string, collectorPrefix string) (*basicCollector, error) {
+	collector := basicCollector{
+		prefix:        collectorPrefix,
+		defaultLabels: defaultLabels,
 		up: prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: prometheus.BuildFQName(namespace, collectorPrefix, "up"),
 			Help: upHelp,
@@ -81,11 +57,49 @@ func newBasicCollector(logger log.Logger, client m.Client, measurementsMetadata 
 			Name: prometheus.BuildFQName(namespace, collectorPrefix, "measurement_transformation_failures_total"),
 			Help: measurementTransformationFailuresHelp,
 		}),
-		metrics: metrics,
-
 		client: client,
 		logger: logger,
-	}, nil
+	}
+
+	for _, measurementMetadata := range measurementMap {
+		err := RegisterAtlasMetric(measurementMetadata, &collector)
+
+		if err != nil {
+			level.Error(logger).Log("err", err)
+		}
+	}
+
+	return &collector, nil
+}
+
+func RegisterAtlasMetric(measurement *m.Measurement, collector *basicCollector) error {
+	// Transforms the Atlas name to a Prometheus Name
+	promName, err := transformer.TransformName(measurement)
+	if err != nil {
+		msg := "can't transform measurement Name (%s) into metric name: %s"
+		return fmt.Errorf(msg, measurement.Name, err.Error())
+	}
+
+	// Transforms the Atlas type to a Prometheus Type
+	promType, err := transformer.TransformType(measurement)
+	if err != nil {
+		msg := "can't transform measurement (%s) Units (%s) into prometheus.ValueType: %s"
+		return fmt.Errorf(msg, measurement.Name, measurement.Units, err.Error())
+	}
+
+	// Defines a prometheus metric using the name, type and description.
+	metric := metric{
+		Type: promType,
+		Desc: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, collector.prefix, promName),
+			"Original measurements.name: '"+measurement.Name+"'. "+defaultHelp,
+			collector.defaultLabels, nil,
+		),
+		Metadata: measurement,
+	}
+	//append to what will be the basiccollector's list of metrics.
+	collector.metrics = append(collector.metrics, &metric)
+	return nil
 }
 
 // Describe implements prometheus.Collector.

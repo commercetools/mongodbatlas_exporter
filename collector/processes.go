@@ -25,7 +25,7 @@ type Processes struct {
 
 // NewProcesses creates Process Prometheus metrics
 func NewProcesses(logger log.Logger, client m.Client) (*Processes, error) {
-	measurementsMetadata, err := client.GetProcessMeasurementsMetadata()
+	measurementsMetadata, err := client.GetProcessMeasurementMap()
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +70,7 @@ func (c *Processes) Collect(ch chan<- prometheus.Metric) {
 			if !ok {
 				c.measurementTransformationFailures.Inc()
 				level.Warn(c.logger).Log("msg", `skipping metric because can't find matching measurement.
-					It seems to be not initialized during exporter start, you should restart the exporter`,
+				It seems to be not initialized during exporter start, you should restart the exporter`,
 					"metric", metric.Desc, "err", err)
 				continue
 			}

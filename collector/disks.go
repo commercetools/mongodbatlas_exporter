@@ -20,12 +20,12 @@ type Disks struct {
 
 // NewDisks creates Disk Prometheus metrics
 func NewDisks(logger log.Logger, client m.Client) (*Disks, error) {
-	measurementsMetadata, err := client.GetDiskMeasurementsMetadata()
+	measurements, err := client.GetDiskMeasurementMap()
 	if err != nil {
 		return nil, err
 	}
 
-	basicCollector, err := newBasicCollector(logger, client, measurementsMetadata, defaultDiskLabels, disksPrefix)
+	basicCollector, err := newBasicCollector(logger, client, measurements, defaultDiskLabels, disksPrefix)
 	if err != nil {
 		return nil, err
 	}

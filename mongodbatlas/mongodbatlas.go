@@ -113,13 +113,9 @@ func (c *AtlasClient) GetDiskMeasurements() ([]*m.DiskMeasurements, m.ScrapeFail
 				level.Warn(c.logger).Log("msg", "failed to scrape measurements for the disk, skipping", "disk", disk.PartitionName, "err", err)
 				continue
 			}
-			diskMeasurements := make(map[m.MeasurementID]*m.Measurement, len(measurements.Measurements))
+			diskMeasurements := make(m.MeasurementMap, len(measurements.Measurements))
 			for _, measurement := range measurements.Measurements {
-				measurementID := m.NewMeasurementID(measurement.Name, measurement.Units)
-				diskMeasurements[measurementID] = &m.Measurement{
-					DataPoints: measurement.DataPoints,
-					Units:      m.UnitEnum(measurement.Units),
-				}
+				diskMeasurements.RegisterAtlasMeasurement(measurement)
 			}
 			result = append(result, &m.DiskMeasurements{
 				Measurements:  diskMeasurements,
@@ -151,13 +147,9 @@ func (c *AtlasClient) GetProcessMeasurements() ([]*m.ProcessMeasurements, m.Scra
 			level.Warn(c.logger).Log("msg", "failed to scrape measurements for the host, skipping", "host", process.Hostname, "port", process.Port, "err", err)
 			continue
 		}
-		processMeasurements := make(map[m.MeasurementID]*m.Measurement, len(measurements.Measurements))
+		processMeasurements := make(m.MeasurementMap, len(measurements.Measurements))
 		for _, measurement := range measurements.Measurements {
-			measurementID := m.NewMeasurementID(measurement.Name, measurement.Units)
-			processMeasurements[measurementID] = &m.Measurement{
-				DataPoints: measurement.DataPoints,
-				Units:      m.UnitEnum(measurement.Units),
-			}
+			processMeasurements.RegisterAtlasMeasurement(measurement)
 		}
 		result = append(result, &m.ProcessMeasurements{
 			Measurements: processMeasurements,
@@ -173,7 +165,7 @@ func (c *AtlasClient) GetProcessMeasurements() ([]*m.ProcessMeasurements, m.Scra
 }
 
 // GetDiskMeasurementsMetadata returns name and unit of all available Disk measurements
-func (c *AtlasClient) GetDiskMeasurementsMetadata() (map[m.MeasurementID]*m.MeasurementMetadata, error) {
+func (c *AtlasClient) GetDiskMeasurementMap() (m.MeasurementMap, error) {
 	processes, err := c.listProcesses()
 	if err != nil {
 		return nil, err
@@ -190,13 +182,13 @@ func (c *AtlasClient) GetDiskMeasurementsMetadata() (map[m.MeasurementID]*m.Meas
 	return nil, errors.New("can't find any resource with disk measurements, please create Atlas resources first and restart the exporter")
 }
 
-func (c *AtlasClient) getDiskMeasurementsForMetadata(host string, port int) (map[m.MeasurementID]*m.MeasurementMetadata, error) {
+func (c *AtlasClient) getDiskMeasurementsForMetadata(host string, port int) (m.MeasurementMap, error) {
 	disks, err := c.listDisks(host, port)
 	if err != nil {
 		return nil, err
 	}
 	// At the moment of writing: 1 mongod disk expose 10 measurements
-	result := make(map[m.MeasurementID]*m.MeasurementMetadata, 10)
+	result := make(m.MeasurementMap, 10)
 	for _, disk := range disks {
 		diskName := disk.PartitionName
 		diskMeasurements, err := c.listProcessDiskMeasurements(host, port, diskName)
@@ -204,18 +196,14 @@ func (c *AtlasClient) getDiskMeasurementsForMetadata(host string, port int) (map
 			return nil, err
 		}
 		for _, measurement := range diskMeasurements.Measurements {
-			metadata := &m.MeasurementMetadata{
-				Name:  measurement.Name,
-				Units: m.UnitEnum(measurement.Units),
-			}
-			result[metadata.ID()] = metadata
+			result.RegisterAtlasMeasurement(measurement)
 		}
 	}
 	return result, nil
 }
 
 // GetProcessMeasurementsMetadata returns name and unit of all available Process measurements
-func (c *AtlasClient) GetProcessMeasurementsMetadata() (map[m.MeasurementID]*m.MeasurementMetadata, error) {
+func (c *AtlasClient) GetProcessMeasurementMap() (m.MeasurementMap, error) {
 	processes, err := c.listProcesses()
 	if err != nil {
 		return nil, err
@@ -227,7 +215,7 @@ func (c *AtlasClient) GetProcessMeasurementsMetadata() (map[m.MeasurementID]*m.M
 	// measurements for mognod process and mongos process measurements contain different amount of measurements,
 	// mongod contains all measurements that mongos provides and some more specific to mongod measurements
 	// (like `CACHE_*`,  `DB_*`, `DOCUMENT_*`, `GLOBAL_LOCK_CURRENT_QUEUE_*`, etc)
-	result := make(map[m.MeasurementID]*m.MeasurementMetadata, 96)
+	result := make(m.MeasurementMap, 96)
 
 	for _, process := range processes {
 		if _, ok := processTypes[process.TypeName]; ok {
@@ -240,11 +228,7 @@ func (c *AtlasClient) GetProcessMeasurementsMetadata() (map[m.MeasurementID]*m.M
 		processTypes[process.TypeName] = true
 		if len(processMeasurements.Measurements) > 0 {
 			for _, measurement := range processMeasurements.Measurements {
-				metadata := &m.MeasurementMetadata{
-					Name:  measurement.Name,
-					Units: m.UnitEnum(measurement.Units),
-				}
-				result[metadata.ID()] = metadata
+				result.RegisterAtlasMeasurement(measurement)
 			}
 		}
 	}

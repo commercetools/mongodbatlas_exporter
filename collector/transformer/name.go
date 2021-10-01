@@ -10,7 +10,7 @@ import (
 const nameDelimiter = ""
 
 // TransformName transforms MeasurementMetadata into string for Prometheus metric name
-func TransformName(measurement *m.MeasurementMetadata) (string, error) {
+func TransformName(measurement *m.Measurement) (string, error) {
 	emptyName := len(measurement.Name) < 1
 	unit, knownUnit := unitsTransformationRules[measurement.Units]
 

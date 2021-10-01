@@ -33,6 +33,7 @@ type ScrapeFailures int
 
 // Measurement contains unit and mulpiple dataPoints of one measurement
 type Measurement struct {
+	Name       string
 	DataPoints []*mongodbatlas.DataPoints
 	Units      UnitEnum
 }
@@ -40,30 +41,24 @@ type Measurement struct {
 // DiskMeasurements contains all measurements of one Disk
 type DiskMeasurements struct {
 	ProjectID, RsName, UserAlias, PartitionName string
-	Measurements                                map[MeasurementID]*Measurement
+	Measurements                                MeasurementMap
 }
 
 // ProcessMeasurements contains all measurements of one Process
 type ProcessMeasurements struct {
 	ProjectID, RsName, UserAlias, Version, TypeName string
-	Measurements                                    map[MeasurementID]*Measurement
+	Measurements                                    MeasurementMap
 }
 
 // Client wraps mongodbatlas.Client
 type Client interface {
 	GetDiskMeasurements() ([]*DiskMeasurements, ScrapeFailures, error)
 	GetProcessMeasurements() ([]*ProcessMeasurements, ScrapeFailures, error)
-	GetDiskMeasurementsMetadata() (map[MeasurementID]*MeasurementMetadata, error)
-	GetProcessMeasurementsMetadata() (map[MeasurementID]*MeasurementMetadata, error)
-}
-
-// MeasurementMetadata contains Measurements.Name and Measurements.Unit
-type MeasurementMetadata struct {
-	Name  string
-	Units UnitEnum
+	GetDiskMeasurementMap() (MeasurementMap, error)
+	GetProcessMeasurementMap() (MeasurementMap, error)
 }
 
 // ID returns identifier of the metric
-func (c MeasurementMetadata) ID() MeasurementID {
+func (c Measurement) ID() MeasurementID {
 	return NewMeasurementID(c.Name, string(c.Units))
 }
