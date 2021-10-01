@@ -52,7 +52,7 @@ func (c *Disks) Collect(ch chan<- prometheus.Metric) {
 
 	for _, diskMeasurements := range disksMeasurements {
 		for _, metric := range c.metrics {
-			measurement, ok := diskMeasurements.Measurements[metric.Metadata.ID()]
+			measurement, ok := diskMeasurements.Measurements[metric.Measurement.ID()]
 			if !ok {
 				c.measurementTransformationFailures.Inc()
 				level.Warn(c.logger).Log("msg", `skipping metric because can't find matching measurement.

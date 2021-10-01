@@ -13,7 +13,7 @@ func TestNameTransformer(t *testing.T) {
 	exampleName := "EXAMPLE_MeasuRemenT"
 
 	for unitName, unitTransformation := range unitsTransformationRules {
-		measurement := *exampleMeasurementMetadata
+		measurement := *exampleMeasurement
 		measurement.Name = exampleName
 		measurement.Units = unitName
 		expectedName := strings.Join([]string{strings.ToLower(exampleName), unitTransformation.nameSuffix}, "")
@@ -30,7 +30,7 @@ func TestNameTransformer_noName(t *testing.T) {
 	exampleName := ""
 
 	for unitName := range unitsTransformationRules {
-		measurement := *exampleMeasurementMetadata
+		measurement := *exampleMeasurement
 		measurement.Name = exampleName
 		measurement.Units = unitName
 
@@ -45,7 +45,7 @@ func TestNameTransformer_noUnit(t *testing.T) {
 	assert := assert.New(t)
 	exampleName := "EXAMPLE_MeasuRemenT"
 	var unit m.UnitEnum
-	measurement := *exampleMeasurementMetadata
+	measurement := *exampleMeasurement
 	measurement.Name = exampleName
 	measurement.Units = unit
 
@@ -59,7 +59,7 @@ func TestNameTransformer_scalar(t *testing.T) {
 	assert := assert.New(t)
 	exampleName := "EXAMPLE_MeasuRemenT"
 	var unit m.UnitEnum = "SCALAR"
-	measurement := *exampleMeasurementMetadata
+	measurement := *exampleMeasurement
 	measurement.Name = exampleName
 	measurement.Units = unit
 

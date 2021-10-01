@@ -164,7 +164,7 @@ func (c *AtlasClient) GetProcessMeasurements() ([]*m.ProcessMeasurements, m.Scra
 	return result, scrapeFailures, err
 }
 
-// GetDiskMeasurementsMetadata returns name and unit of all available Disk measurements
+// GetDiskMeasurementMap returns name and unit of all available Disk measurements
 func (c *AtlasClient) GetDiskMeasurementMap() (m.MeasurementMap, error) {
 	processes, err := c.listProcesses()
 	if err != nil {
@@ -172,7 +172,7 @@ func (c *AtlasClient) GetDiskMeasurementMap() (m.MeasurementMap, error) {
 	}
 	for _, process := range processes {
 		if process.TypeName != "SHARD_MONGOS" {
-			result, err := c.getDiskMeasurementsForMetadata(process.Hostname, process.Port)
+			result, err := c.getDiskMeasurements(process.Hostname, process.Port)
 			if err != nil || len(result) < 1 {
 				continue
 			}
@@ -182,7 +182,7 @@ func (c *AtlasClient) GetDiskMeasurementMap() (m.MeasurementMap, error) {
 	return nil, errors.New("can't find any resource with disk measurements, please create Atlas resources first and restart the exporter")
 }
 
-func (c *AtlasClient) getDiskMeasurementsForMetadata(host string, port int) (m.MeasurementMap, error) {
+func (c *AtlasClient) getDiskMeasurements(host string, port int) (m.MeasurementMap, error) {
 	disks, err := c.listDisks(host, port)
 	if err != nil {
 		return nil, err
@@ -202,7 +202,7 @@ func (c *AtlasClient) getDiskMeasurementsForMetadata(host string, port int) (m.M
 	return result, nil
 }
 
-// GetProcessMeasurementsMetadata returns name and unit of all available Process measurements
+//GetProcessMeasurementMap returns name and unit of all available Process measurements
 func (c *AtlasClient) GetProcessMeasurementMap() (m.MeasurementMap, error) {
 	processes, err := c.listProcesses()
 	if err != nil {

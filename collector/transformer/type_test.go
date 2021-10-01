@@ -10,7 +10,7 @@ import (
 func TestTypeTransformation(t *testing.T) {
 	assert := assert.New(t)
 
-	promType, err := TransformType(exampleMeasurementMetadata)
+	promType, err := TransformType(exampleMeasurement)
 
 	assert.NoError(err)
 	assert.Equal(prometheus.GaugeValue, promType)

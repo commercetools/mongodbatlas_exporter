@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	exampleMeasurementMetadata = &m.Measurement{
+	exampleMeasurement = &m.Measurement{
 		Name:  "DISK_PARTITION_IOPS_READ",
 		Units: "SCALAR_PER_SECOND",
 	}

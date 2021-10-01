@@ -21,9 +21,9 @@ const (
 )
 
 type metric struct {
-	Type     prometheus.ValueType
-	Desc     *prometheus.Desc
-	Metadata *m.Measurement
+	Type        prometheus.ValueType
+	Desc        *prometheus.Desc
+	Measurement *m.Measurement
 }
 
 type basicCollector struct {
@@ -61,8 +61,8 @@ func newBasicCollector(logger log.Logger, client m.Client, measurementMap m.Meas
 		logger: logger,
 	}
 
-	for _, measurementMetadata := range measurementMap {
-		err := RegisterAtlasMetric(measurementMetadata, &collector)
+	for _, measurement := range measurementMap {
+		err := RegisterAtlasMetric(measurement, &collector)
 
 		if err != nil {
 			level.Error(logger).Log("err", err)
@@ -95,7 +95,7 @@ func RegisterAtlasMetric(measurement *m.Measurement, collector *basicCollector) 
 			"Original measurements.name: '"+measurement.Name+"'. "+defaultHelp,
 			collector.defaultLabels, nil,
 		),
-		Metadata: measurement,
+		Measurement: measurement,
 	}
 	//append to what will be the basiccollector's list of metrics.
 	collector.metrics = append(collector.metrics, &metric)

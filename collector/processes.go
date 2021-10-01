@@ -25,12 +25,12 @@ type Processes struct {
 
 // NewProcesses creates Process Prometheus metrics
 func NewProcesses(logger log.Logger, client m.Client) (*Processes, error) {
-	measurementsMetadata, err := client.GetProcessMeasurementMap()
+	measurements, err := client.GetProcessMeasurementMap()
 	if err != nil {
 		return nil, err
 	}
 
-	basicCollector, err := newBasicCollector(logger, client, measurementsMetadata, defaultProcessLabels, processesPrefix)
+	basicCollector, err := newBasicCollector(logger, client, measurements, defaultProcessLabels, processesPrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func (c *Processes) Collect(ch chan<- prometheus.Metric) {
 
 	for _, processMeasurements := range processesMeasurements {
 		for _, metric := range c.metrics {
-			measurement, ok := processMeasurements.Measurements[metric.Metadata.ID()]
+			measurement, ok := processMeasurements.Measurements[metric.Measurement.ID()]
 			if !ok {
 				c.measurementTransformationFailures.Inc()
 				level.Warn(c.logger).Log("msg", `skipping metric because can't find matching measurement.

@@ -38,7 +38,7 @@ func TestDesc(t *testing.T) {
 	mock := &MockClient{}
 	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
 
-	collector, err := newBasicCollector(logger, mock, getGivenMeasurementMetadata(), defaultTestLabels, testPrefix)
+	collector, err := newBasicCollector(logger, mock, getGivenMeasurement(), defaultTestLabels, testPrefix)
 	assert.NotNil(collector)
 	assert.NoError(err)
 	descCh := make(chan *prometheus.Desc, 99)
@@ -83,7 +83,7 @@ func getExpectedDescs() []*prometheus.Desc {
 	return []*prometheus.Desc{upDesc, totalScrapesDesc, scrapeFailuresDesc, measurementTransformationFailuresDesc, metricDesc}
 }
 
-func getGivenMeasurementMetadata() m.MeasurementMap {
+func getGivenMeasurement() m.MeasurementMap {
 	return map[m.MeasurementID]*m.Measurement{
 		m.NewMeasurementID("DISK_PARTITION_IOPS_READ", "SCALAR_PER_SECOND"): {
 			Name:  "DISK_PARTITION_IOPS_READ",
