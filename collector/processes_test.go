@@ -59,7 +59,7 @@ func getGivenProcessesMeasurements(value1 *float32) []*m.ProcessMeasurements {
 			Version:   "4.2.13",
 			TypeName:  "REPLICA_PRIMARY",
 			Measurements: map[m.MeasurementID]*m.Measurement{
-				"QUERY_EXECUTOR_SCANNED_SCALAR_PER_SECOND": &m.Measurement{
+				"QUERY_EXECUTOR_SCANNED_SCALAR_PER_SECOND": {
 					DataPoints: []*mongodbatlas.DataPoints{
 						{
 							Timestamp: "2021-03-07T15:46:13Z",
@@ -72,7 +72,7 @@ func getGivenProcessesMeasurements(value1 *float32) []*m.ProcessMeasurements {
 					},
 					Units: m.SCALAR_PER_SECOND,
 				},
-				"TICKETS_AVAILABLE_READS_SCALAR": &m.Measurement{
+				"TICKETS_AVAILABLE_READS_SCALAR": {
 					DataPoints: []*mongodbatlas.DataPoints{},
 					Units:      m.SCALAR,
 				},
