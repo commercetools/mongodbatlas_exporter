@@ -62,7 +62,7 @@ func newBasicCollector(logger log.Logger, client m.Client, measurementMap m.Meas
 	}
 
 	for _, measurement := range measurementMap {
-		err := RegisterAtlasMetric(measurement, &collector)
+		err := collector.RegisterAtlasMetric(measurement)
 
 		if err != nil {
 			level.Error(logger).Log("err", err)
@@ -72,7 +72,7 @@ func newBasicCollector(logger log.Logger, client m.Client, measurementMap m.Meas
 	return &collector, nil
 }
 
-func RegisterAtlasMetric(measurement *m.Measurement, collector *basicCollector) error {
+func (collector *basicCollector) RegisterAtlasMetric(measurement *m.Measurement) error {
 	// Transforms the Atlas name to a Prometheus Name
 	promName, err := transformer.TransformName(measurement)
 	if err != nil {
