@@ -1,4 +1,4 @@
-# Mongodbatlas exporter for Prometheus
+# MongoDB Atlas exporter for Prometheus
 
 ## Functionality
 
