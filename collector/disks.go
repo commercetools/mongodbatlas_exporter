@@ -49,10 +49,11 @@ func (c *Disks) Collect(ch chan<- prometheus.Metric) {
 	c.up.Set(1)
 	c.scrapeFailures.Add(float64(failedScrapes))
 
+	// for every disk
 	for _, diskMeasurements := range disksMeasurements {
-		for _, metric := range c.measurements {
+		//for every measurement for the disk
+		for _, metric := range diskMeasurements.Measurements {
 			err := c.reportMeasurement(ch,
-				diskMeasurements.Measurements,
 				metric,
 				diskMeasurements.ProjectID,
 				diskMeasurements.RsName,

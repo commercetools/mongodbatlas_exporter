@@ -63,10 +63,11 @@ func (c *Processes) Collect(ch chan<- prometheus.Metric) {
 	c.up.Set(1)
 	c.scrapeFailures.Add(float64(failedScrapes))
 
+	//for every process
 	for _, processMeasurements := range processesMeasurements {
-		for _, metric := range c.measurements {
+		//every metric for every process
+		for _, metric := range processMeasurements.Measurements {
 			err := c.reportMeasurement(ch,
-				processMeasurements.Measurements,
 				metric,
 				processMeasurements.ProjectID,
 				processMeasurements.RsName,

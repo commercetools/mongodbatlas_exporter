@@ -26,7 +26,11 @@ type basicCollector struct {
 	defaultLabels                                                   []string
 	up                                                              prometheus.Gauge
 	totalScrapes, scrapeFailures, measurementTransformationFailures prometheus.Counter
-	measurements                                                    []*m.Measurement
+
+	// the MeasurementMap should hold all the metrics for the particular collector.
+	// since all metrics are currently reported as Gauges, this is not a stateful representation
+	// of metric current values, but a known definition of the available metrics.
+	measurements m.MeasurementMap
 }
 
 // newBasicCollector creates basicCollector
@@ -55,6 +59,7 @@ func newBasicCollector(logger log.Logger, client m.Client, measurementMap m.Meas
 		logger: logger,
 	}
 
+	collector.measurements = make(m.MeasurementMap, len(measurementMap))
 	for _, measurement := range measurementMap {
 		collector.RegisterAtlasMetric(measurement)
 	}
@@ -64,7 +69,7 @@ func newBasicCollector(logger log.Logger, client m.Client, measurementMap m.Meas
 
 func (collector *basicCollector) RegisterAtlasMetric(measurement *m.Measurement) {
 	//append to what will be the basiccollector's list of metrics.
-	collector.measurements = append(collector.measurements, measurement)
+	collector.measurements[measurement.ID()] = measurement
 }
 
 // Describe implements prometheus.Collector.
@@ -86,11 +91,11 @@ func (c *basicCollector) Describe(ch chan<- *prometheus.Desc) {
 }
 
 //reportMeasurement is used during the collector.Collect call to convert a model.Measurement into the necessary data for the prometheus report.
-func (c *basicCollector) reportMeasurement(ch chan<- prometheus.Metric, measurementMap m.MeasurementMap, measurement *m.Measurement, extraLabels ...string) error {
-	_, ok := measurementMap[measurement.ID()]
+func (c *basicCollector) reportMeasurement(ch chan<- prometheus.Metric, measurement *m.Measurement, extraLabels ...string) error {
+	_, ok := c.measurements[measurement.ID()]
 	if !ok {
 		c.measurementTransformationFailures.Inc()
-		measurementMap.RegisterMeasurement(measurement)
+		c.measurements.RegisterMeasurement(measurement)
 	}
 	value, err := measurement.PromVal()
 	if err != nil {
