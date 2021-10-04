@@ -62,15 +62,10 @@ func newBasicCollector(logger log.Logger, client m.Client, measurementMap m.Meas
 
 	collector.measurements = make(m.MeasurementMap, len(measurementMap))
 	for _, measurement := range measurementMap {
-		collector.RegisterAtlasMetric(measurement)
+		collector.measurements.RegisterMeasurement(measurement)
 	}
 
 	return &collector, nil
-}
-
-func (collector *basicCollector) RegisterAtlasMetric(measurement *m.Measurement) {
-	//append to what will be the basiccollector's list of metrics.
-	collector.measurements[measurement.ID()] = measurement
 }
 
 // Describe implements prometheus.Collector.
