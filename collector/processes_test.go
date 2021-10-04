@@ -11,6 +11,10 @@ import (
 	"go.mongodb.org/atlas/mongodbatlas"
 )
 
+const (
+	testDefaultHelp = "default help message"
+)
+
 func (c *MockClient) GetProcessMeasurements() ([]*m.ProcessMeasurements, m.ScrapeFailures, error) {
 	return c.givenProcessesMeasurements, 3, nil
 }
@@ -85,7 +89,7 @@ func getExpectedProcessesMetrics(value float64) []prometheus.Metric {
 	processQueryExecutorScanned := prometheus.MustNewConstMetric(
 		prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, processesPrefix, "query_executor_scanned_ratio"),
-			"Original measurements.name: 'QUERY_EXECUTOR_SCANNED'. "+defaultHelp,
+			"Original measurements.name: 'QUERY_EXECUTOR_SCANNED'. "+testDefaultHelp,
 			defaultProcessLabels,
 			nil),
 		prometheus.GaugeValue,

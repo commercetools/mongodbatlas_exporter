@@ -1,9 +1,8 @@
-package transformer
+package model
 
 import (
 	"errors"
 	"math"
-	m "mongodbatlas_exporter/model"
 	"sort"
 	"time"
 
@@ -48,15 +47,15 @@ func containsValidDataPoints(datapoints []*mongodbatlas.DataPoints) error {
 	return nil
 }
 
-func convertValue(value float64, unit m.UnitEnum) float64 {
+func convertValue(value float64, unit UnitEnum) float64 {
 	multiplier := unitsTransformationRules[unit].valueMultiplier
 	return value * multiplier
 }
 
 // TransformValue transforms Measurements into float64 for Prometheus metric value
-func TransformValue(measurement *m.Measurement) (float64, error) {
-	dataPoints := measurement.DataPoints
-	unit := measurement.Units
+func (m *Measurement) PromVal() (float64, error) {
+	dataPoints := m.DataPoints
+	unit := m.Units
 	err := containsValidDataPoints(dataPoints)
 	if err != nil {
 		return math.NaN(), err

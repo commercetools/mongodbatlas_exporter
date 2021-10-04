@@ -1,7 +1,6 @@
 package collector
 
 import (
-	transformer "mongodbatlas_exporter/collector/transformer"
 	m "mongodbatlas_exporter/model"
 
 	"github.com/go-kit/kit/log"
@@ -65,28 +64,17 @@ func (c *Processes) Collect(ch chan<- prometheus.Metric) {
 	c.scrapeFailures.Add(float64(failedScrapes))
 
 	for _, processMeasurements := range processesMeasurements {
-		for _, metric := range c.metrics {
-			measurement, ok := processMeasurements.Measurements[metric.Measurement.ID()]
-			if !ok {
-				c.measurementTransformationFailures.Inc()
-				level.Warn(c.logger).Log("msg", `skipping metric because can't find matching measurement.
-				It seems to be not initialized during exporter start, you should restart the exporter`,
-					"metric", metric.Desc, "err", err)
-				continue
-			}
-			value, err := transformer.TransformValue(measurement)
-			if err != nil {
-				c.measurementTransformationFailures.Inc()
-				level.Warn(c.logger).Log("msg", "skipping metric because of value transformation failure", "metric", metric.Desc, "measurement", measurement, "err", err)
-				continue
-			}
+		for _, metric := range c.measurements {
+			err := c.reportMeasurement(ch,
+				processMeasurements.Measurements,
+				metric,
+				processMeasurements.ProjectID,
+				processMeasurements.RsName,
+				processMeasurements.UserAlias)
 
-			ch <- prometheus.MustNewConstMetric(
-				metric.Desc,
-				metric.Type,
-				value,
-				processMeasurements.ProjectID, processMeasurements.RsName, processMeasurements.UserAlias,
-			)
+			if err != nil {
+				level.Warn(c.logger).Log("err", err)
+			}
 		}
 
 		infoGauge := c.info.WithLabelValues(

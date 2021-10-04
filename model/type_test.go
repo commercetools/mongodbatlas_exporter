@@ -1,4 +1,4 @@
-package transformer
+package model
 
 import (
 	"testing"
@@ -10,8 +10,7 @@ import (
 func TestTypeTransformation(t *testing.T) {
 	assert := assert.New(t)
 
-	promType, err := TransformType(exampleMeasurement)
+	promType := exampleMeasurement.PromType()
 
-	assert.NoError(err)
 	assert.Equal(prometheus.GaugeValue, promType)
 }

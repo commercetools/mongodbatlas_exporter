@@ -1,7 +1,6 @@
-package transformer
+package model
 
 import (
-	m "mongodbatlas_exporter/model"
 	"strings"
 	"testing"
 
@@ -18,7 +17,7 @@ func TestNameTransformer(t *testing.T) {
 		measurement.Units = unitName
 		expectedName := strings.Join([]string{strings.ToLower(exampleName), unitTransformation.nameSuffix}, "")
 
-		promName, err := TransformName(&measurement)
+		promName, err := measurement.PromName()
 
 		assert.NoError(err)
 		assert.Equal(expectedName, promName)
@@ -34,7 +33,7 @@ func TestNameTransformer_noName(t *testing.T) {
 		measurement.Name = exampleName
 		measurement.Units = unitName
 
-		promName, err := TransformName(&measurement)
+		promName, err := measurement.PromName()
 
 		assert.Error(err)
 		assert.Empty(promName)
@@ -44,12 +43,12 @@ func TestNameTransformer_noName(t *testing.T) {
 func TestNameTransformer_noUnit(t *testing.T) {
 	assert := assert.New(t)
 	exampleName := "EXAMPLE_MeasuRemenT"
-	var unit m.UnitEnum
+	var unit UnitEnum
 	measurement := *exampleMeasurement
 	measurement.Name = exampleName
 	measurement.Units = unit
 
-	promName, err := TransformName(&measurement)
+	promName, err := measurement.PromName()
 
 	assert.Error(err)
 	assert.Empty(promName)
@@ -58,12 +57,12 @@ func TestNameTransformer_noUnit(t *testing.T) {
 func TestNameTransformer_scalar(t *testing.T) {
 	assert := assert.New(t)
 	exampleName := "EXAMPLE_MeasuRemenT"
-	var unit m.UnitEnum = "SCALAR"
+	var unit UnitEnum = "SCALAR"
 	measurement := *exampleMeasurement
 	measurement.Name = exampleName
 	measurement.Units = unit
 
-	promName, err := TransformName(&measurement)
+	promName, err := measurement.PromName()
 
 	assert.NoError(err)
 	assert.Equal("example_measurement", promName)

@@ -77,7 +77,7 @@ func getExpectedDescs() []*prometheus.Desc {
 		nil)
 	metricDesc := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, testPrefix, "disk_partition_iops_read_ratio"),
-		"Original measurements.name: 'DISK_PARTITION_IOPS_READ'. "+defaultHelp,
+		"Original measurements.name: 'DISK_PARTITION_IOPS_READ'. "+testDefaultHelp,
 		defaultTestLabels,
 		nil)
 	return []*prometheus.Desc{upDesc, totalScrapesDesc, scrapeFailuresDesc, measurementTransformationFailuresDesc, metricDesc}

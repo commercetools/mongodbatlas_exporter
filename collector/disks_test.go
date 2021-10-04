@@ -85,7 +85,7 @@ func getExpectedDisksMetrics(value float64) []prometheus.Metric {
 	diskPartitionIopsReadRate := prometheus.MustNewConstMetric(
 		prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "disks_stats", "disk_partition_iops_read_ratio"),
-			"Original measurements.name: 'DISK_PARTITION_IOPS_READ'. "+defaultHelp,
+			"Original measurements.name: 'DISK_PARTITION_IOPS_READ'. "+testDefaultHelp,
 			defaultDiskLabels,
 			nil),
 		prometheus.GaugeValue,

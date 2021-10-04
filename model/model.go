@@ -1,7 +1,5 @@
 package model
 
-import "go.mongodb.org/atlas/mongodbatlas"
-
 // UnitEnum is a enum of supported Messurements Units
 type UnitEnum string
 
@@ -20,35 +18,8 @@ const (
 	SCALAR               UnitEnum = "SCALAR"
 )
 
-// MeasurementID consists of Measurement.Name and Measurement.Units
-type MeasurementID string
-
-// NewMeasurementID creates MeasurementId from name and units
-func NewMeasurementID(name, unit string) MeasurementID {
-	return MeasurementID(name + "_" + unit)
-}
-
 // ScrapeFailures shows number of failed Measurements scapes
 type ScrapeFailures int
-
-// Measurement contains unit and mulpiple dataPoints of one measurement
-type Measurement struct {
-	Name       string
-	DataPoints []*mongodbatlas.DataPoints
-	Units      UnitEnum
-}
-
-// DiskMeasurements contains all measurements of one Disk
-type DiskMeasurements struct {
-	ProjectID, RsName, UserAlias, PartitionName string
-	Measurements                                MeasurementMap
-}
-
-// ProcessMeasurements contains all measurements of one Process
-type ProcessMeasurements struct {
-	ProjectID, RsName, UserAlias, Version, TypeName string
-	Measurements                                    MeasurementMap
-}
 
 // Client wraps mongodbatlas.Client
 type Client interface {
@@ -56,9 +27,4 @@ type Client interface {
 	GetProcessMeasurements() ([]*ProcessMeasurements, ScrapeFailures, error)
 	GetDiskMeasurementMap() (MeasurementMap, error)
 	GetProcessMeasurementMap() (MeasurementMap, error)
-}
-
-// ID returns identifier of the metric
-func (c Measurement) ID() MeasurementID {
-	return NewMeasurementID(c.Name, string(c.Units))
 }

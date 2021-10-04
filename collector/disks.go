@@ -1,7 +1,6 @@
 package collector
 
 import (
-	transformer "mongodbatlas_exporter/collector/transformer"
 	m "mongodbatlas_exporter/model"
 
 	"github.com/go-kit/kit/log"
@@ -51,28 +50,18 @@ func (c *Disks) Collect(ch chan<- prometheus.Metric) {
 	c.scrapeFailures.Add(float64(failedScrapes))
 
 	for _, diskMeasurements := range disksMeasurements {
-		for _, metric := range c.metrics {
-			measurement, ok := diskMeasurements.Measurements[metric.Measurement.ID()]
-			if !ok {
-				c.measurementTransformationFailures.Inc()
-				level.Warn(c.logger).Log("msg", `skipping metric because can't find matching measurement.
-					It seems to be not initialized during exporter start, you should restart the exporter`,
-					"metric", metric.Desc, "err", err)
-				continue
-			}
-			value, err := transformer.TransformValue(measurement)
-			if err != nil {
-				c.measurementTransformationFailures.Inc()
-				level.Warn(c.logger).Log("msg", "skipping metric because of value transformation failure", "metric", metric.Desc, "measurement", measurement, "err", err)
-				continue
-			}
+		for _, metric := range c.measurements {
+			err := c.reportMeasurement(ch,
+				diskMeasurements.Measurements,
+				metric,
+				diskMeasurements.ProjectID,
+				diskMeasurements.RsName,
+				diskMeasurements.UserAlias,
+				diskMeasurements.PartitionName)
 
-			ch <- prometheus.MustNewConstMetric(
-				metric.Desc,
-				metric.Type,
-				value,
-				diskMeasurements.ProjectID, diskMeasurements.RsName, diskMeasurements.UserAlias, diskMeasurements.PartitionName,
-			)
+			if err != nil {
+				level.Warn(c.logger).Log("err", err)
+			}
 		}
 	}
 }

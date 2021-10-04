@@ -1,8 +1,7 @@
-package transformer
+package model
 
 import (
 	"math"
-	m "mongodbatlas_exporter/model"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -194,7 +193,7 @@ func TestValueTransformer_sortDataPoints(t *testing.T) {
 
 func TestValueTransformer_twoDatapoints_allNotValid(t *testing.T) {
 	assert := assert.New(t)
-	exampleMeasurement := &m.Measurement{
+	exampleMeasurement := &Measurement{
 		DataPoints: []*mongodbatlas.DataPoints{
 			{
 				Timestamp: "2021-03-04T16:53:06Z",
@@ -205,10 +204,10 @@ func TestValueTransformer_twoDatapoints_allNotValid(t *testing.T) {
 				Value:     nil,
 			},
 		},
-		Units: m.SCALAR,
+		Units: SCALAR,
 	}
 
-	promValue, err := TransformValue(exampleMeasurement)
+	promValue, err := exampleMeasurement.PromVal()
 
 	assert.NoError(err)
 	assert.Equal(float64(0), promValue)
@@ -217,7 +216,7 @@ func TestValueTransformer_twoDatapoints_allNotValid(t *testing.T) {
 func TestValueTransformer_twoDatapoints_latestValid(t *testing.T) {
 	assert := assert.New(t)
 	value2 := float32(2.10016)
-	exampleMeasurement := &m.Measurement{
+	exampleMeasurement := &Measurement{
 		DataPoints: []*mongodbatlas.DataPoints{
 			{
 				Timestamp: "2021-03-04T16:53:06Z",
@@ -228,10 +227,10 @@ func TestValueTransformer_twoDatapoints_latestValid(t *testing.T) {
 				Value:     &value2,
 			},
 		},
-		Units: m.GIGABYTES,
+		Units: GIGABYTES,
 	}
 
-	promValue, err := TransformValue(exampleMeasurement)
+	promValue, err := exampleMeasurement.PromVal()
 
 	assert.NoError(err)
 	assert.Equal(float64(value2)*math.Pow(1024, 3), promValue)
@@ -240,7 +239,7 @@ func TestValueTransformer_twoDatapoints_latestValid(t *testing.T) {
 func TestValueTransformer_twoDatapoints_firstValid(t *testing.T) {
 	assert := assert.New(t)
 	value1 := float32(2.10016)
-	exampleMeasurement := &m.Measurement{
+	exampleMeasurement := &Measurement{
 		DataPoints: []*mongodbatlas.DataPoints{
 			{
 				Timestamp: "2021-03-04T16:53:06Z",
@@ -251,10 +250,10 @@ func TestValueTransformer_twoDatapoints_firstValid(t *testing.T) {
 				Value:     nil,
 			},
 		},
-		Units: m.GIGABYTES_PER_HOUR,
+		Units: GIGABYTES_PER_HOUR,
 	}
 
-	promValue, err := TransformValue(exampleMeasurement)
+	promValue, err := exampleMeasurement.PromVal()
 
 	assert.NoError(err)
 	assert.Equal(float64(value1)*math.Pow(1024, 3), promValue)
@@ -263,7 +262,7 @@ func TestValueTransformer_twoDatapoints_firstValid(t *testing.T) {
 func TestValueTransformer_twoDatapoints_bothValid(t *testing.T) {
 	assert := assert.New(t)
 	value1, value2 := float32(2.10016), float32(2.10999)
-	exampleMeasurement := &m.Measurement{
+	exampleMeasurement := &Measurement{
 		DataPoints: []*mongodbatlas.DataPoints{
 			{
 				Timestamp: "2021-03-04T16:53:06Z",
@@ -274,10 +273,10 @@ func TestValueTransformer_twoDatapoints_bothValid(t *testing.T) {
 				Value:     &value2,
 			},
 		},
-		Units: m.KILOBYTES,
+		Units: KILOBYTES,
 	}
 
-	promValue, err := TransformValue(exampleMeasurement)
+	promValue, err := exampleMeasurement.PromVal()
 
 	assert.NoError(err)
 	assert.Equal(float64(value2)*1024, promValue)
@@ -286,7 +285,7 @@ func TestValueTransformer_twoDatapoints_bothValid(t *testing.T) {
 func TestValueTransformer_twoDatapoints_bothValid_swapTimestamps(t *testing.T) {
 	assert := assert.New(t)
 	value1, value2 := float32(1.10016), float32(2.10999)
-	exampleMeasurement := &m.Measurement{
+	exampleMeasurement := &Measurement{
 		DataPoints: []*mongodbatlas.DataPoints{
 			{
 				Timestamp: "2021-03-04T16:54:06Z",
@@ -297,10 +296,10 @@ func TestValueTransformer_twoDatapoints_bothValid_swapTimestamps(t *testing.T) {
 				Value:     &value1,
 			},
 		},
-		Units: m.MEGABYTES,
+		Units: MEGABYTES,
 	}
 
-	promValue, err := TransformValue(exampleMeasurement)
+	promValue, err := exampleMeasurement.PromVal()
 
 	assert.NoError(err)
 	assert.Equal(float64(value2)*math.Pow(1024, 2), promValue)
@@ -309,7 +308,7 @@ func TestValueTransformer_twoDatapoints_bothValid_swapTimestamps(t *testing.T) {
 func TestValueTransformer_twoDatapoints_latestValid_swapTimestamps(t *testing.T) {
 	assert := assert.New(t)
 	value2 := float32(10999)
-	exampleMeasurement := &m.Measurement{
+	exampleMeasurement := &Measurement{
 		DataPoints: []*mongodbatlas.DataPoints{
 			{
 				Timestamp: "2021-03-04T16:54:06Z",
@@ -320,10 +319,10 @@ func TestValueTransformer_twoDatapoints_latestValid_swapTimestamps(t *testing.T)
 				Value:     nil,
 			},
 		},
-		Units: m.MILLISECONDS,
+		Units: MILLISECONDS,
 	}
 
-	promValue, err := TransformValue(exampleMeasurement)
+	promValue, err := exampleMeasurement.PromVal()
 
 	assert.NoError(err)
 	assert.Equal(float64(value2)*0.001, promValue)
@@ -332,7 +331,7 @@ func TestValueTransformer_twoDatapoints_latestValid_swapTimestamps(t *testing.T)
 func TestValueTransformer_twoDatapoints_firstValid_sameTimestamps(t *testing.T) {
 	assert := assert.New(t)
 	value1 := float32(2.10016)
-	exampleMeasurement := &m.Measurement{
+	exampleMeasurement := &Measurement{
 		DataPoints: []*mongodbatlas.DataPoints{
 			{
 				Timestamp: "2021-03-04T16:54:06Z",
@@ -343,10 +342,10 @@ func TestValueTransformer_twoDatapoints_firstValid_sameTimestamps(t *testing.T) 
 				Value:     nil,
 			},
 		},
-		Units: m.SCALAR,
+		Units: SCALAR,
 	}
 
-	promValue, err := TransformValue(exampleMeasurement)
+	promValue, err := exampleMeasurement.PromVal()
 
 	assert.NoError(err)
 	assert.Equal(float64(value1), promValue)
@@ -354,8 +353,8 @@ func TestValueTransformer_twoDatapoints_firstValid_sameTimestamps(t *testing.T) 
 
 func TestValueTransformer_noDataPoints(t *testing.T) {
 	assert := assert.New(t)
-	exampleMeasurement := &m.Measurement{}
-	_, err := TransformValue(exampleMeasurement)
+	exampleMeasurement := &Measurement{}
+	_, err := exampleMeasurement.PromVal()
 
 	assert.Error(err)
 }
@@ -363,16 +362,16 @@ func TestValueTransformer_noDataPoints(t *testing.T) {
 func TestValueTransformer_oneDatapoint_valid(t *testing.T) {
 	assert := assert.New(t)
 	value1 := float32(2.10016)
-	exampleMeasurement := &m.Measurement{
+	exampleMeasurement := &Measurement{
 		DataPoints: []*mongodbatlas.DataPoints{
 			{
 				Timestamp: "2021-03-04T16:54:06Z",
 				Value:     &value1,
 			},
 		},
-		Units: m.SCALAR,
+		Units: SCALAR,
 	}
-	promValue, err := TransformValue(exampleMeasurement)
+	promValue, err := exampleMeasurement.PromVal()
 
 	assert.NoError(err)
 	assert.Equal(float64(value1), promValue)
@@ -380,17 +379,17 @@ func TestValueTransformer_oneDatapoint_valid(t *testing.T) {
 
 func TestValueTransformer_oneDatapoint_nil(t *testing.T) {
 	assert := assert.New(t)
-	exampleMeasurement := &m.Measurement{
+	exampleMeasurement := &Measurement{
 		DataPoints: []*mongodbatlas.DataPoints{
 			{
 				Timestamp: "2021-03-04T16:54:06Z",
 				Value:     nil,
 			},
 		},
-		Units: m.SCALAR,
+		Units: SCALAR,
 	}
 
-	promValue, err := TransformValue(exampleMeasurement)
+	promValue, err := exampleMeasurement.PromVal()
 
 	assert.NoError(err)
 	assert.Equal(float64(0), promValue)
@@ -399,7 +398,7 @@ func TestValueTransformer_oneDatapoint_nil(t *testing.T) {
 func TestValueTransformer_moreDataPoints_latestNotValid(t *testing.T) {
 	assert := assert.New(t)
 	value2 := float32(2.10999)
-	exampleMeasurement := &m.Measurement{
+	exampleMeasurement := &Measurement{
 		DataPoints: []*mongodbatlas.DataPoints{
 			{
 				Timestamp: "2021-03-04T16:53:06Z",
@@ -414,10 +413,10 @@ func TestValueTransformer_moreDataPoints_latestNotValid(t *testing.T) {
 				Value:     nil,
 			},
 		},
-		Units: m.SCALAR,
+		Units: SCALAR,
 	}
 
-	promValue, err := TransformValue(exampleMeasurement)
+	promValue, err := exampleMeasurement.PromVal()
 
 	assert.NoError(err)
 	assert.Equal(float64(value2), promValue)
@@ -426,7 +425,7 @@ func TestValueTransformer_moreDataPoints_latestNotValid(t *testing.T) {
 func TestValueTransformer_moreDataPoints_lastValid(t *testing.T) {
 	assert := assert.New(t)
 	value3 := float32(2.10999)
-	exampleMeasurement := &m.Measurement{
+	exampleMeasurement := &Measurement{
 		DataPoints: []*mongodbatlas.DataPoints{
 			{
 				Timestamp: "2021-03-04T16:53:06Z",
@@ -441,10 +440,10 @@ func TestValueTransformer_moreDataPoints_lastValid(t *testing.T) {
 				Value:     &value3,
 			},
 		},
-		Units: m.SCALAR,
+		Units: SCALAR,
 	}
 
-	promValue, err := TransformValue(exampleMeasurement)
+	promValue, err := exampleMeasurement.PromVal()
 
 	assert.NoError(err)
 	assert.Equal(float64(value3), promValue)
@@ -453,7 +452,7 @@ func TestValueTransformer_moreDataPoints_lastValid(t *testing.T) {
 func TestValueTransformer_moreDataPoints_bothValid_duplicatedTimestamps(t *testing.T) {
 	assert := assert.New(t)
 	value2, value3 := float32(2.20999), float32(2.00999)
-	exampleMeasurement := &m.Measurement{
+	exampleMeasurement := &Measurement{
 		DataPoints: []*mongodbatlas.DataPoints{
 			{
 				Timestamp: "2021-03-04T16:53:06Z",
@@ -468,10 +467,10 @@ func TestValueTransformer_moreDataPoints_bothValid_duplicatedTimestamps(t *testi
 				Value:     &value3,
 			},
 		},
-		Units: m.SCALAR,
+		Units: SCALAR,
 	}
 
-	promValue, err := TransformValue(exampleMeasurement)
+	promValue, err := exampleMeasurement.PromVal()
 
 	assert.NoError(err)
 	assert.Equal(float64(value2), promValue)
@@ -480,7 +479,7 @@ func TestValueTransformer_moreDataPoints_bothValid_duplicatedTimestamps(t *testi
 func TestValueTransformer_moreDataPoints_nilLastValid_duplicatedTimestamps(t *testing.T) {
 	assert := assert.New(t)
 	value3 := float32(2.10999)
-	exampleMeasurement := &m.Measurement{
+	exampleMeasurement := &Measurement{
 		DataPoints: []*mongodbatlas.DataPoints{
 			{
 				Timestamp: "2021-03-04T16:53:06Z",
@@ -495,10 +494,10 @@ func TestValueTransformer_moreDataPoints_nilLastValid_duplicatedTimestamps(t *te
 				Value:     nil,
 			},
 		},
-		Units: m.SCALAR,
+		Units: SCALAR,
 	}
 
-	promValue, err := TransformValue(exampleMeasurement)
+	promValue, err := exampleMeasurement.PromVal()
 
 	assert.NoError(err)
 	assert.Equal(float64(value3), promValue)

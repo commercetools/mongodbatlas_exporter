@@ -20,3 +20,7 @@ func (measurementMap *MeasurementMap) RegisterAtlasMeasurement(measurement *mong
 		Units:      UnitEnum(measurement.Units),
 	}
 }
+
+func (measurementMap *MeasurementMap) RegisterMeasurement(measurement *Measurement) {
+	(*measurementMap)[measurement.ID()] = measurement
+}

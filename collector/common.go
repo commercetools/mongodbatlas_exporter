@@ -2,7 +2,6 @@ package collector
 
 import (
 	"fmt"
-	transformer "mongodbatlas_exporter/collector/transformer"
 	m "mongodbatlas_exporter/model"
 
 	"github.com/go-kit/kit/log"
@@ -16,24 +15,18 @@ const (
 	upHelp                                = "Was the last communication with MongoDB Atlas API successful."
 	totalScrapesHelp                      = "Current total MongoDB Atlas scrapes."
 	scrapeFailuresHelp                    = "Number of unsuccessful measurement scrapes from MongoDB Atlas API."
-	defaultHelp                           = "Please see MongoDB Atlas documentation for details about the measurement"
 	measurementTransformationFailuresHelp = "Number of errors during transformation of scraped MongoDB Atlas measurements into Prometheus metrics."
 )
-
-type metric struct {
-	Type        prometheus.ValueType
-	Desc        *prometheus.Desc
-	Measurement *m.Measurement
-}
 
 type basicCollector struct {
 	client                                                          m.Client
 	logger                                                          log.Logger
+	namespace                                                       string
 	prefix                                                          string
 	defaultLabels                                                   []string
 	up                                                              prometheus.Gauge
 	totalScrapes, scrapeFailures, measurementTransformationFailures prometheus.Counter
-	metrics                                                         []*metric
+	measurements                                                    []*m.Measurement
 }
 
 // newBasicCollector creates basicCollector
@@ -41,6 +34,7 @@ func newBasicCollector(logger log.Logger, client m.Client, measurementMap m.Meas
 	collector := basicCollector{
 		prefix:        collectorPrefix,
 		defaultLabels: defaultLabels,
+		namespace:     namespace,
 		up: prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: prometheus.BuildFQName(namespace, collectorPrefix, "up"),
 			Help: upHelp,
@@ -62,44 +56,15 @@ func newBasicCollector(logger log.Logger, client m.Client, measurementMap m.Meas
 	}
 
 	for _, measurement := range measurementMap {
-		err := collector.RegisterAtlasMetric(measurement)
-
-		if err != nil {
-			level.Error(logger).Log("err", err)
-		}
+		collector.RegisterAtlasMetric(measurement)
 	}
 
 	return &collector, nil
 }
 
-func (collector *basicCollector) RegisterAtlasMetric(measurement *m.Measurement) error {
-	// Transforms the Atlas name to a Prometheus Name
-	promName, err := transformer.TransformName(measurement)
-	if err != nil {
-		msg := "can't transform measurement Name (%s) into metric name: %s"
-		return fmt.Errorf(msg, measurement.Name, err.Error())
-	}
-
-	// Transforms the Atlas type to a Prometheus Type
-	promType, err := transformer.TransformType(measurement)
-	if err != nil {
-		msg := "can't transform measurement (%s) Units (%s) into prometheus.ValueType: %s"
-		return fmt.Errorf(msg, measurement.Name, measurement.Units, err.Error())
-	}
-
-	// Defines a prometheus metric using the name, type and description.
-	metric := metric{
-		Type: promType,
-		Desc: prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, collector.prefix, promName),
-			"Original measurements.name: '"+measurement.Name+"'. "+defaultHelp,
-			collector.defaultLabels, nil,
-		),
-		Measurement: measurement,
-	}
+func (collector *basicCollector) RegisterAtlasMetric(measurement *m.Measurement) {
 	//append to what will be the basiccollector's list of metrics.
-	collector.metrics = append(collector.metrics, &metric)
-	return nil
+	collector.measurements = append(collector.measurements, measurement)
 }
 
 // Describe implements prometheus.Collector.
@@ -109,7 +74,42 @@ func (c *basicCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.scrapeFailures.Desc()
 	ch <- c.measurementTransformationFailures.Desc()
 
-	for _, metric := range c.metrics {
-		ch <- metric.Desc
+	for _, measurement := range c.measurements {
+		desc, err := measurement.PromDesc(c.namespace, c.prefix, c.defaultLabels)
+
+		if err != nil {
+			level.Warn(c.logger).Log("msg", "skipping metric because description transformation error", "metric", measurement.Name, "measurement", measurement, "err", err)
+			continue
+		}
+		ch <- desc
 	}
+}
+
+//reportMeasurement is used during the collector.Collect call to convert a model.Measurement into the necessary data for the prometheus report.
+func (c *basicCollector) reportMeasurement(ch chan<- prometheus.Metric, measurementMap m.MeasurementMap, measurement *m.Measurement, extraLabels ...string) error {
+	_, ok := measurementMap[measurement.ID()]
+	if !ok {
+		c.measurementTransformationFailures.Inc()
+		measurementMap.RegisterMeasurement(measurement)
+	}
+	value, err := measurement.PromVal()
+	if err != nil {
+		c.measurementTransformationFailures.Inc()
+		return fmt.Errorf("metric %s value transformation failure: %s", measurement.Name, err)
+	}
+
+	desc, err := measurement.PromDesc(c.namespace, c.prefix, c.defaultLabels)
+
+	if err != nil {
+		c.measurementTransformationFailures.Inc()
+		return fmt.Errorf("metric %s description transformation failure: %s", measurement.Name, err)
+	}
+
+	ch <- prometheus.MustNewConstMetric(
+		desc,
+		measurement.PromType(),
+		value,
+		extraLabels...,
+	)
+	return nil
 }
