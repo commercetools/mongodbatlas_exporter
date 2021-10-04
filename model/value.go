@@ -11,6 +11,8 @@ import (
 
 const timestampFormat = "2006-01-02T15:04:05Z"
 
+var ErrNoDatapoints = errors.New("no datapoints are available")
+
 func sortDataPoints(dataPoints *[]*mongodbatlas.DataPoints) {
 	sort.Slice(*dataPoints, func(i, j int) bool {
 		t1, _ := time.Parse(timestampFormat, (*dataPoints)[i].Timestamp)
@@ -36,7 +38,7 @@ func containsValidDataPoints(datapoints []*mongodbatlas.DataPoints) error {
 	emptyDataPoints := len(datapoints) < 1
 
 	if emptyDataPoints {
-		return errors.New("no datapoints are available")
+		return ErrNoDatapoints
 	}
 	for _, dataPoint := range datapoints {
 		_, err := time.Parse(timestampFormat, dataPoint.Timestamp)

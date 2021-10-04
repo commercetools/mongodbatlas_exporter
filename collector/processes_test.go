@@ -11,24 +11,26 @@ import (
 	"go.mongodb.org/atlas/mongodbatlas"
 )
 
-const (
-	testDefaultHelp = "default help message"
-)
-
 func (c *MockClient) GetProcessMeasurements() ([]*m.ProcessMeasurements, m.ScrapeFailures, error) {
 	return c.givenProcessesMeasurements, 3, nil
 }
 func (c *MockClient) GetProcessMeasurementMap() (m.MeasurementMap, error) {
-	return m.MeasurementMap{
-		m.NewMeasurementID("TICKETS_AVAILABLE_READS", "SCALAR"): {
+	measurements := []m.Measurement{
+		{
 			Name:  "TICKETS_AVAILABLE_READS",
 			Units: "SCALAR",
 		},
-		m.NewMeasurementID("QUERY_EXECUTOR_SCANNED", "SCALAR_PER_SECOND"): {
+		{
 			Name:  "QUERY_EXECUTOR_SCANNED",
 			Units: "SCALAR_PER_SECOND",
 		},
-	}, nil
+	}
+
+	theMMap := make(m.MeasurementMap, len(measurements))
+	for _, theM := range measurements {
+		theMMap[theM.ID()] = &theM
+	}
+	return theMMap, nil
 }
 
 func TestProcessesCollector(t *testing.T) {
@@ -62,7 +64,7 @@ func getGivenProcessesMeasurements(value1 *float32) []*m.ProcessMeasurements {
 			UserAlias: "cluster-host:27017",
 			Version:   "4.2.13",
 			TypeName:  "REPLICA_PRIMARY",
-			Measurements: map[m.MeasurementID]*m.Measurement{
+			Measurements: m.MeasurementMap{
 				"QUERY_EXECUTOR_SCANNED_SCALAR_PER_SECOND": {
 					DataPoints: []*mongodbatlas.DataPoints{
 						{
@@ -75,10 +77,12 @@ func getGivenProcessesMeasurements(value1 *float32) []*m.ProcessMeasurements {
 						},
 					},
 					Units: m.SCALAR_PER_SECOND,
+					Name:  "QUERY_EXECUTOR_SCANNED",
 				},
 				"TICKETS_AVAILABLE_READS_SCALAR": {
 					DataPoints: []*mongodbatlas.DataPoints{},
 					Units:      m.SCALAR,
+					Name:       "TICKETS_AVAILABLE_READS",
 				},
 			},
 		},

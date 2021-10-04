@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"errors"
 	"fmt"
 	m "mongodbatlas_exporter/model"
 
@@ -97,11 +98,6 @@ func (c *basicCollector) reportMeasurement(ch chan<- prometheus.Metric, measurem
 		c.measurementTransformationFailures.Inc()
 		c.measurements.RegisterMeasurement(measurement)
 	}
-	value, err := measurement.PromVal()
-	if err != nil {
-		c.measurementTransformationFailures.Inc()
-		return fmt.Errorf("metric %s value transformation failure: %s", measurement.Name, err)
-	}
 
 	desc, err := measurement.PromDesc(c.namespace, c.prefix, c.defaultLabels)
 
@@ -110,11 +106,23 @@ func (c *basicCollector) reportMeasurement(ch chan<- prometheus.Metric, measurem
 		return fmt.Errorf("metric %s description transformation failure: %s", measurement.Name, err)
 	}
 
+	value, err := measurement.PromVal()
+	if err != nil {
+		// If there are no datapoints we do not count it as a transformation nor a scrape error.
+		// It's just missing data. Not sure if this is the _best_, but I'm trying to maintain backwards compatibility.
+		if errors.Is(err, m.ErrNoDatapoints) {
+			return err
+		}
+		c.measurementTransformationFailures.Inc()
+		err = fmt.Errorf("metric %s value transformation failure: %s", measurement.Name, err)
+		return err
+	}
+
 	ch <- prometheus.MustNewConstMetric(
 		desc,
 		measurement.PromType(),
 		value,
 		extraLabels...,
 	)
-	return nil
+	return err
 }

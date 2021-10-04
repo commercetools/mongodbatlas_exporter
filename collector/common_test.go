@@ -13,6 +13,7 @@ import (
 
 var (
 	defaultTestLabels = []string{"label_name1", "label_name2", "label_name3"}
+	testDefaultHelp   = "Please see MongoDB Atlas documentation for details about the measurement"
 )
 
 const testPrefix = "stats"
@@ -84,10 +85,11 @@ func getExpectedDescs() []*prometheus.Desc {
 }
 
 func getGivenMeasurement() m.MeasurementMap {
-	return map[m.MeasurementID]*m.Measurement{
-		m.NewMeasurementID("DISK_PARTITION_IOPS_READ", "SCALAR_PER_SECOND"): {
-			Name:  "DISK_PARTITION_IOPS_READ",
-			Units: "SCALAR_PER_SECOND",
-		},
+	theM := m.Measurement{
+		Name:  "DISK_PARTITION_IOPS_READ",
+		Units: "SCALAR_PER_SECOND",
+	}
+	return m.MeasurementMap{
+		theM.ID(): &theM,
 	}
 }

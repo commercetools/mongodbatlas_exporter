@@ -16,16 +16,24 @@ func (c *MockClient) GetDiskMeasurements() ([]*m.DiskMeasurements, m.ScrapeFailu
 }
 
 func (c *MockClient) GetDiskMeasurementMap() (m.MeasurementMap, error) {
-	return m.MeasurementMap{
-		m.NewMeasurementID("DISK_PARTITION_IOPS_READ", "SCALAR_PER_SECOND"): {
+	measurements := []m.Measurement{
+		{
 			Name:  "DISK_PARTITION_IOPS_READ",
 			Units: "SCALAR_PER_SECOND",
 		},
-		m.NewMeasurementID("DISK_PARTITION_SPACE_USED", "BYTES"): {
+		{
 			Name:  "DISK_PARTITION_SPACE_USED",
 			Units: "BYTES",
 		},
-	}, nil
+	}
+
+	measurementMap := make(m.MeasurementMap, len(measurements))
+
+	for _, theM := range measurements {
+		measurementMap[theM.ID()] = &theM
+	}
+
+	return measurementMap, nil
 }
 
 func TestDisksCollector(t *testing.T) {
@@ -58,7 +66,7 @@ func getGivenMeasurements(value1 *float32) []*m.DiskMeasurements {
 			RsName:        "testReplicaSet",
 			UserAlias:     "cluster-host:27017",
 			PartitionName: "testPartition",
-			Measurements: map[m.MeasurementID]*m.Measurement{
+			Measurements: m.MeasurementMap{
 				"DISK_PARTITION_IOPS_READ_SCALAR_PER_SECOND": {
 					DataPoints: []*mongodbatlas.DataPoints{
 						{
@@ -71,10 +79,12 @@ func getGivenMeasurements(value1 *float32) []*m.DiskMeasurements {
 						},
 					},
 					Units: m.SCALAR_PER_SECOND,
+					Name:  "DISK_PARTITION_IOPS_READ",
 				},
 				"DISK_PARTITION_SPACE_USED_BYTES": {
-					DataPoints: []*mongodbatlas.DataPoints{},
+					DataPoints: []*mongodbatlas.DataPoints{}, //no measurements
 					Units:      m.BYTES,
+					Name:       "DISK_PARTITION_SPACE_USED",
 				},
 			},
 		},
