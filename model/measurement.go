@@ -35,15 +35,9 @@ type ProcessMeasurements struct {
 // MeasurementID consists of Measurement.Name and Measurement.Units
 type MeasurementID string
 
-// NewMeasurementID creates MeasurementId from name and units
-// TODO: use ID() instead.
-func NewMeasurementID(name, unit string) MeasurementID {
-	return MeasurementID(name + "_" + unit)
-}
-
 // ID returns identifier of the metric
 func (c Measurement) ID() MeasurementID {
-	return NewMeasurementID(c.Name, string(c.Units))
+	return MeasurementID(c.Name + "_" + string(c.Units))
 }
 
 //PromType returns the prometheus type for the measurement.

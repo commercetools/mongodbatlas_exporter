@@ -13,12 +13,12 @@ import (
 type MeasurementMap map[MeasurementID]*Measurement
 
 func (measurementMap *MeasurementMap) RegisterAtlasMeasurement(measurement *mongodbatlas.Measurements) {
-	measurementID := NewMeasurementID(measurement.Name, measurement.Units)
-	(*measurementMap)[measurementID] = &Measurement{
+	theM := Measurement{
 		Name:       measurement.Name,
 		DataPoints: measurement.DataPoints,
 		Units:      UnitEnum(measurement.Units),
 	}
+	(*measurementMap)[theM.ID()] = &theM
 }
 
 func (measurementMap *MeasurementMap) RegisterMeasurement(measurement *Measurement) {
