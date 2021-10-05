@@ -1,6 +1,9 @@
 package model
 
-import "go.mongodb.org/atlas/mongodbatlas"
+import (
+	"github.com/prometheus/client_golang/prometheus"
+	"go.mongodb.org/atlas/mongodbatlas"
+)
 
 // UnitEnum is a enum of supported Messurements Units
 type UnitEnum string
@@ -39,7 +42,9 @@ type Measurement struct {
 
 type Measurer interface {
 	GetMeasurements() map[MeasurementID]*Measurement
-	ExtraLabels() []string
+	LabelValues() []string
+	LabelNames() []string
+	PromLabels() prometheus.Labels
 }
 
 // DiskMeasurements contains all measurements of one Disk
@@ -52,8 +57,21 @@ func (d *DiskMeasurements) GetMeasurements() map[MeasurementID]*Measurement {
 	return d.Measurements
 }
 
-func (d *DiskMeasurements) ExtraLabels() []string {
+func (d *DiskMeasurements) LabelValues() []string {
 	return []string{d.ProjectID, d.RsName, d.UserAlias, d.PartitionName}
+}
+
+func (d *DiskMeasurements) LabelNames() []string {
+	return []string{"project_id", "rs_name", "user_alias", "partition_name"}
+}
+
+func (d *DiskMeasurements) PromLabels() prometheus.Labels {
+	return prometheus.Labels{
+		"project_id":     d.ProjectID,
+		"rs_name":        d.RsName,
+		"user_alias":     d.UserAlias,
+		"partition_name": d.PartitionName,
+	}
 }
 
 // ProcessMeasurements contains all measurements of one Process
@@ -66,8 +84,35 @@ func (p *ProcessMeasurements) GetMeasurements() map[MeasurementID]*Measurement {
 	return p.Measurements
 }
 
-func (p *ProcessMeasurements) ExtraLabels() []string {
-	return []string{p.ProjectID, p.RsName, p.UserAlias, p.Version, p.TypeName}
+//LabelValues does not return the type and version as it would lead
+//to too much cardinality.
+func (p *ProcessMeasurements) LabelValues() []string {
+	return []string{p.ProjectID, p.RsName, p.UserAlias}
+}
+
+//LabelNames does not return the type and version as it would lead
+//to too much cardinality. Metrics that need these extra fields should
+//access them directly.
+func (p *ProcessMeasurements) LabelNames() []string {
+	return []string{"project_id", "rs_name", "user_alias"}
+}
+
+//AllLabelNames
+func (p *ProcessMeasurements) AllLabelNames() []string {
+	return append(p.LabelNames(), "version", "type")
+}
+
+//AllLabelValues
+func (p *ProcessMeasurements) AllLabelValues() []string {
+	return append(p.LabelValues(), p.Version, p.TypeName)
+}
+
+func (p *ProcessMeasurements) PromLabels() prometheus.Labels {
+	return prometheus.Labels{
+		"project_id": p.ProjectID,
+		"rs_name":    p.RsName,
+		"user_alias": p.UserAlias,
+	}
 }
 
 // Client wraps mongodbatlas.Client

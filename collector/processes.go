@@ -1,15 +1,13 @@
 package collector
 
 import (
+	"mongodbatlas_exporter/model"
 	m "mongodbatlas_exporter/model"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 )
-
-var defaultProcessLabels = []string{"project_id", "rs_name", "user_alias"}
-var infoProcessLabels = []string{"project_id", "rs_name", "user_alias", "version", "type"}
 
 const (
 	processesPrefix = "processes_stats"
@@ -29,7 +27,7 @@ func NewProcesses(logger log.Logger, client m.Client) (*Processes, error) {
 		return nil, err
 	}
 
-	basicCollector, err := newBasicCollector(logger, client, measurementsMetadata, defaultProcessLabels, processesPrefix)
+	basicCollector, err := newBasicCollector(logger, client, measurementsMetadata, &m.ProcessMeasurements{}, processesPrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +38,7 @@ func NewProcesses(logger log.Logger, client m.Client) (*Processes, error) {
 				Name: prometheus.BuildFQName(namespace, processesPrefix, "info"),
 				Help: infoHelp,
 			},
-			infoProcessLabels),
+			(&model.ProcessMeasurements{}).AllLabelNames()),
 	}
 
 	return processes, nil
@@ -53,7 +51,6 @@ func (c *Processes) Collect(ch chan<- prometheus.Metric) {
 		ch <- c.up
 		ch <- c.totalScrapes
 		ch <- c.scrapeFailures
-		ch <- c.measurementTransformationFailures
 	}()
 
 	processesMeasurements, failedScrapes, err := c.client.GetProcessMeasurements()
@@ -67,13 +64,13 @@ func (c *Processes) Collect(ch chan<- prometheus.Metric) {
 		for _, metric := range c.metrics {
 			err = c.report(processMeasurements, metric, ch)
 			if err != nil {
-				level.Warn(c.logger).Log("msg", `skipping metric`,
+				level.Debug(c.logger).Log("msg", `skipping metric`,
 					"metric", metric.Desc, "err", err)
 				continue
 			}
 		}
 
-		infoGauge := c.info.WithLabelValues(processMeasurements.ExtraLabels()...)
+		infoGauge := c.info.WithLabelValues(processMeasurements.AllLabelValues()...)
 		infoGauge.Set(1)
 		ch <- infoGauge
 	}

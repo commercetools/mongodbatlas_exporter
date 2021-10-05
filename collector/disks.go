@@ -24,7 +24,7 @@ func NewDisks(logger log.Logger, client m.Client) (*Disks, error) {
 		return nil, err
 	}
 
-	basicCollector, err := newBasicCollector(logger, client, measurementsMetadata, defaultDiskLabels, disksPrefix)
+	basicCollector, err := newBasicCollector(logger, client, measurementsMetadata, &m.DiskMeasurements{}, disksPrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +39,6 @@ func (c *Disks) Collect(ch chan<- prometheus.Metric) {
 		ch <- c.up
 		ch <- c.totalScrapes
 		ch <- c.scrapeFailures
-		ch <- c.measurementTransformationFailures
 	}()
 
 	disksMeasurements, failedScrapes, err := c.client.GetDiskMeasurements()
@@ -53,7 +52,7 @@ func (c *Disks) Collect(ch chan<- prometheus.Metric) {
 		for _, metric := range c.metrics {
 			err = c.report(diskMeasurements, metric, ch)
 			if err != nil {
-				level.Warn(c.logger).Log("msg", `skipping metric`,
+				level.Debug(c.logger).Log("msg", `skipping metric`,
 					"metric", metric.Desc, "err", err)
 				continue
 			}

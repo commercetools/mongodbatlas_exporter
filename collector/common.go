@@ -27,17 +27,30 @@ type metric struct {
 	Metadata *m.MeasurementMetadata
 }
 
+func (x *metric) ErrorLabels(extraLabels prometheus.Labels) prometheus.Labels {
+	result := prometheus.Labels{
+		"atlas_metric": x.Metadata.Name,
+	}
+
+	for key, value := range extraLabels {
+		result[key] = value
+	}
+
+	return result
+}
+
 type basicCollector struct {
 	client m.Client
 	logger log.Logger
 
-	up                                                              prometheus.Gauge
-	totalScrapes, scrapeFailures, measurementTransformationFailures prometheus.Counter
-	metrics                                                         []*metric
+	up                                prometheus.Gauge
+	totalScrapes, scrapeFailures      prometheus.Counter
+	measurementTransformationFailures prometheus.CounterVec
+	metrics                           []*metric
 }
 
 // newBasicCollector creates basicCollector
-func newBasicCollector(logger log.Logger, client m.Client, measurementsMetadata map[m.MeasurementID]*m.MeasurementMetadata, defaultLabels []string, collectorPrefix string) (*basicCollector, error) {
+func newBasicCollector(logger log.Logger, client m.Client, measurementsMetadata map[m.MeasurementID]*m.MeasurementMetadata, measurer m.Measurer, collectorPrefix string) (*basicCollector, error) {
 	var metrics []*metric
 	for _, measurementMetadata := range measurementsMetadata {
 		promName, err := transformer.TransformName(measurementMetadata)
@@ -58,12 +71,13 @@ func newBasicCollector(logger log.Logger, client m.Client, measurementsMetadata 
 			Desc: prometheus.NewDesc(
 				prometheus.BuildFQName(namespace, collectorPrefix, promName),
 				"Original measurements.name: '"+measurementMetadata.Name+"'. "+defaultHelp,
-				defaultLabels, nil,
+				measurer.LabelNames(), nil,
 			),
 			Metadata: measurementMetadata,
 		}
 		metrics = append(metrics, &metric)
 	}
+	failureLabels := append(measurer.LabelNames(), "atlas_metric", "error")
 
 	return &basicCollector{
 		up: prometheus.NewGauge(prometheus.GaugeOpts{
@@ -78,14 +92,13 @@ func newBasicCollector(logger log.Logger, client m.Client, measurementsMetadata 
 			Name: prometheus.BuildFQName(namespace, collectorPrefix, "scrape_failures_total"),
 			Help: scrapeFailuresHelp,
 		}),
-		measurementTransformationFailures: prometheus.NewCounter(prometheus.CounterOpts{
+		measurementTransformationFailures: *prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: prometheus.BuildFQName(namespace, collectorPrefix, "measurement_transformation_failures_total"),
 			Help: measurementTransformationFailuresHelp,
-		}),
+		}, failureLabels),
 		metrics: metrics,
-
-		client: client,
-		logger: logger,
+		client:  client,
+		logger:  logger,
 	}, nil
 }
 
@@ -94,7 +107,6 @@ func (c *basicCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.up.Desc()
 	ch <- c.totalScrapes.Desc()
 	ch <- c.scrapeFailures.Desc()
-	ch <- c.measurementTransformationFailures.Desc()
 
 	for _, metric := range c.metrics {
 		ch <- metric.Desc
@@ -103,13 +115,20 @@ func (c *basicCollector) Describe(ch chan<- *prometheus.Desc) {
 
 func (c *basicCollector) report(measurer m.Measurer, metric *metric, ch chan<- prometheus.Metric) error {
 	measurement, ok := measurer.GetMeasurements()[metric.Metadata.ID()]
+	baseErrorLabels := metric.ErrorLabels(measurer.PromLabels())
 	if !ok {
-		c.measurementTransformationFailures.Inc()
+		baseErrorLabels["error"] = "not_registered"
+		notRegistered := c.measurementTransformationFailures.With(baseErrorLabels)
+		notRegistered.Inc()
+		ch <- notRegistered
 		return fmt.Errorf("no registered measurement for %s", metric.Metadata.Name)
 	}
 	value, err := transformer.TransformValue(measurement)
 	if err != nil {
-		c.measurementTransformationFailures.Inc()
+		baseErrorLabels["error"] = "value"
+		valueError := c.measurementTransformationFailures.With(baseErrorLabels)
+		valueError.Inc()
+		ch <- valueError
 		return err
 	}
 
@@ -117,7 +136,7 @@ func (c *basicCollector) report(measurer m.Measurer, metric *metric, ch chan<- p
 		metric.Desc,
 		metric.Type,
 		value,
-		measurer.ExtraLabels()...,
+		measurer.LabelValues()...,
 	)
 	return nil
 }

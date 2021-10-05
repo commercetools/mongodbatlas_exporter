@@ -82,6 +82,7 @@ func getGivenMeasurements(value1 *float32) []*m.DiskMeasurements {
 }
 
 func getExpectedDisksMetrics(value float64) []prometheus.Metric {
+	testLabelValues := []string{"testProjectID", "testReplicaSet", "cluster-host:27017", "testPartition"}
 	diskPartitionIopsReadRate := prometheus.MustNewConstMetric(
 		prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "disks_stats", "disk_partition_iops_read_ratio"),
@@ -90,7 +91,8 @@ func getExpectedDisksMetrics(value float64) []prometheus.Metric {
 			nil),
 		prometheus.GaugeValue,
 		value,
-		"testProjectID", "testReplicaSet", "cluster-host:27017", "testPartition")
+		testLabelValues...,
+	)
 	diskUp := prometheus.MustNewConstMetric(
 		prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, disksPrefix, "up"),
@@ -119,9 +121,11 @@ func getExpectedDisksMetrics(value float64) []prometheus.Metric {
 		prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, disksPrefix, "measurement_transformation_failures_total"),
 			measurementTransformationFailuresHelp,
-			nil,
+			append((&m.DiskMeasurements{}).LabelNames(), "atlas_metric", "error"),
 			nil),
 		prometheus.CounterValue,
-		1)
+		1,
+		append(testLabelValues, "DISK_PARTITION_SPACE_USED", "value")...,
+	)
 	return []prometheus.Metric{diskPartitionIopsReadRate, diskUp, totalScrapes, scrapeFailures, measurementTransformationFailures}
 }
