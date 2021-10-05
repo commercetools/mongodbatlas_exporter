@@ -130,7 +130,7 @@ func getExpectedProcessesMetrics(value float64) []prometheus.Metric {
 			nil),
 		prometheus.CounterValue,
 		1,
-		append(processMeasurements.LabelValues(), "TICKETS_AVAILABLE_READS", "value")...,
+		append(processMeasurements.LabelValues(), "TICKETS_AVAILABLE_READS", "no_data")...,
 	)
 	processInfo := prometheus.MustNewConstMetric(
 		prometheus.NewDesc(

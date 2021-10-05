@@ -125,7 +125,7 @@ func getExpectedDisksMetrics(value float64) []prometheus.Metric {
 			nil),
 		prometheus.CounterValue,
 		1,
-		append(testLabelValues, "DISK_PARTITION_SPACE_USED", "value")...,
+		append(testLabelValues, "DISK_PARTITION_SPACE_USED", "no_data")...,
 	)
 	return []prometheus.Metric{diskPartitionIopsReadRate, diskUp, totalScrapes, scrapeFailures, measurementTransformationFailures}
 }

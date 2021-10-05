@@ -2,7 +2,6 @@ package collector
 
 import (
 	"mongodbatlas_exporter/model"
-	m "mongodbatlas_exporter/model"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
@@ -21,13 +20,13 @@ type Processes struct {
 }
 
 // NewProcesses creates Process Prometheus metrics
-func NewProcesses(logger log.Logger, client m.Client) (*Processes, error) {
+func NewProcesses(logger log.Logger, client model.Client) (*Processes, error) {
 	measurementsMetadata, err := client.GetProcessMeasurementsMetadata()
 	if err != nil {
 		return nil, err
 	}
 
-	basicCollector, err := newBasicCollector(logger, client, measurementsMetadata, &m.ProcessMeasurements{}, processesPrefix)
+	basicCollector, err := newBasicCollector(logger, client, measurementsMetadata, &model.ProcessMeasurements{}, processesPrefix)
 	if err != nil {
 		return nil, err
 	}

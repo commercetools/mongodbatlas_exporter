@@ -125,7 +125,13 @@ func (c *basicCollector) report(measurer m.Measurer, metric *metric, ch chan<- p
 	}
 	value, err := transformer.TransformValue(measurement)
 	if err != nil {
-		baseErrorLabels["error"] = "value"
+		switch err {
+		case transformer.ErrNoData:
+			baseErrorLabels["error"] = "no_data"
+		default:
+			baseErrorLabels["error"] = "value"
+		}
+
 		valueError := c.measurementTransformationFailures.With(baseErrorLabels)
 		valueError.Inc()
 		ch <- valueError
