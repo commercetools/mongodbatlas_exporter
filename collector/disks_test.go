@@ -59,7 +59,7 @@ func getGivenMeasurements(value1 *float32) []*m.DiskMeasurements {
 			UserAlias:     "cluster-host:27017",
 			PartitionName: "testPartition",
 			Measurements: map[m.MeasurementID]*m.Measurement{
-				"DISK_PARTITION_IOPS_READ_SCALAR_PER_SECOND": &m.Measurement{
+				"DISK_PARTITION_IOPS_READ_SCALAR_PER_SECOND": {
 					DataPoints: []*mongodbatlas.DataPoints{
 						{
 							Timestamp: "2017-08-22T20:31:12Z",
@@ -72,7 +72,7 @@ func getGivenMeasurements(value1 *float32) []*m.DiskMeasurements {
 					},
 					Units: m.SCALAR_PER_SECOND,
 				},
-				"DISK_PARTITION_SPACE_USED_BYTES": &m.Measurement{
+				"DISK_PARTITION_SPACE_USED_BYTES": {
 					DataPoints: []*mongodbatlas.DataPoints{},
 					Units:      m.BYTES,
 				},

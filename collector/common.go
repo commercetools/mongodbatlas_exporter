@@ -2,6 +2,7 @@ package collector
 
 import (
 	"errors"
+	"fmt"
 	transformer "mongodbatlas_exporter/collector/transformer"
 	m "mongodbatlas_exporter/model"
 
@@ -98,4 +99,25 @@ func (c *basicCollector) Describe(ch chan<- *prometheus.Desc) {
 	for _, metric := range c.metrics {
 		ch <- metric.Desc
 	}
+}
+
+func (c *basicCollector) report(measurer m.Measurer, metric *metric, ch chan<- prometheus.Metric) error {
+	measurement, ok := measurer.GetMeasurements()[metric.Metadata.ID()]
+	if !ok {
+		c.measurementTransformationFailures.Inc()
+		return fmt.Errorf("no registered measurement for %s", metric.Metadata.Name)
+	}
+	value, err := transformer.TransformValue(measurement)
+	if err != nil {
+		c.measurementTransformationFailures.Inc()
+		return err
+	}
+
+	ch <- prometheus.MustNewConstMetric(
+		metric.Desc,
+		metric.Type,
+		value,
+		measurer.ExtraLabels()...,
+	)
+	return nil
 }
