@@ -40,10 +40,18 @@ type Measurement struct {
 	Units      UnitEnum
 }
 
+//Measurer interface allows DiskMeasurements and ProcessMeasurements
+//to share common methods in this package and external packages.
 type Measurer interface {
+	//Getter for the measurement map
 	GetMeasurements() map[MeasurementID]*Measurement
+	//Returns slice of prometheus label values such as the real project_id or rs_name value.
 	LabelValues() []string
+	//Returns slice of prometheus label names so that collectors can register necessary
+	//labels during describe.
 	LabelNames() []string
+	//Returns a map of prometheus.Labels, mostly useful with CounterVec.With to
+	//select a particular counter to manipulate.
 	PromLabels() prometheus.Labels
 }
 
@@ -97,16 +105,21 @@ func (p *ProcessMeasurements) LabelNames() []string {
 	return []string{"project_id", "rs_name", "user_alias"}
 }
 
-//AllLabelNames
+//AllLabelNames is a special case for the process info measurement.
+//includes version and node type.
 func (p *ProcessMeasurements) AllLabelNames() []string {
 	return append(p.LabelNames(), "version", "type")
 }
 
-//AllLabelValues
+//AllLabelValues is a special case for the process info measurement.
+//includes version and node type.
 func (p *ProcessMeasurements) AllLabelValues() []string {
 	return append(p.LabelValues(), p.Version, p.TypeName)
 }
 
+//PromLabels as with many other ProcessMeasurements methods
+//version and type are excluded here as they are often not necessary
+//for identifying a particular instance and increase cardinality.
 func (p *ProcessMeasurements) PromLabels() prometheus.Labels {
 	return prometheus.Labels{
 		"project_id": p.ProjectID,

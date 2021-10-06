@@ -27,6 +27,13 @@ type metric struct {
 	Metadata *m.MeasurementMetadata
 }
 
+//ErrorLabels consumes prometheus.Labels and adds more labels to the map.
+//Perhaps this is a chainable pattern we can reuse on other types to have a
+//consistent interface for working with labels.
+//The prometheus API is fairly inconcsistent where many APIs require a slice of
+//label names or label values.
+//ErrorLabels original need was to combine labels from a Measurer and use them
+//with a prometheus.CounterVec to select a particular counter.
 func (x *metric) ErrorLabels(extraLabels prometheus.Labels) prometheus.Labels {
 	result := prometheus.Labels{
 		"atlas_metric": x.Metadata.Name,
@@ -113,9 +120,18 @@ func (c *basicCollector) Describe(ch chan<- *prometheus.Desc) {
 	}
 }
 
+//report may make more sense being renamed Collect since it is really the parent method
+//for Collect on any sub-type of basicCollecor.
+//Any Measurer and metric can use this common report function to send metrics to prometheus.
+//ProcessCollector and DiskCollector have a small number of particular metrics that they must report
+//themselves using their derivative implementation of Collect.
+//Another nice facet of "report" is that it communicates meaning using errors rather than logs. The meaning
+//can be interpreted within the program as well as by operators.
 func (c *basicCollector) report(measurer m.Measurer, metric *metric, ch chan<- prometheus.Metric) error {
 	measurement, ok := measurer.GetMeasurements()[metric.Metadata.ID()]
 	baseErrorLabels := metric.ErrorLabels(measurer.PromLabels())
+
+	//exposing the not_registered error as a metric
 	if !ok {
 		baseErrorLabels["error"] = "not_registered"
 		notRegistered := c.measurementTransformationFailures.With(baseErrorLabels)
@@ -124,6 +140,8 @@ func (c *basicCollector) report(measurer m.Measurer, metric *metric, ch chan<- p
 		return fmt.Errorf("no registered measurement for %s", metric.Metadata.Name)
 	}
 	value, err := transformer.TransformValue(measurement)
+	//exposing different value transformation errors as metrics.
+	//this is a nice example of using errors with switch statements
 	if err != nil {
 		switch err {
 		case transformer.ErrNoData:

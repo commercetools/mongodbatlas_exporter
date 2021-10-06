@@ -1,7 +1,6 @@
 package transformer
 
 import (
-	"errors"
 	"math"
 	m "mongodbatlas_exporter/model"
 	"sort"
@@ -11,10 +10,6 @@ import (
 )
 
 const timestampFormat = "2006-01-02T15:04:05Z"
-
-var (
-	ErrNoData = errors.New("no datapoints are available")
-)
 
 func sortDataPoints(dataPoints *[]*mongodbatlas.DataPoints) {
 	sort.Slice(*dataPoints, func(i, j int) bool {
