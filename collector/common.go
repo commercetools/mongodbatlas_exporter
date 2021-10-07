@@ -131,19 +131,24 @@ func (c *basicCollector) report(measurer m.Measurer, metric *metric, ch chan<- p
 	measurement, ok := measurer.GetMeasurements()[metric.Metadata.ID()]
 	baseErrorLabels := metric.ErrorLabels(measurer.PromLabels())
 
-	//exposing the not_registered error as a metric
+	//This case is different from no_data because it indicates
+	//that the measurement does not exist at all.
+	//This often occurs with oplog delay metrics on primaries
+	//because they do not report that metric as only secondaries have
+	//replication delay.
 	if !ok {
-		baseErrorLabels["error"] = "not_registered"
+		baseErrorLabels["error"] = "not_found"
 		notRegistered := c.measurementTransformationFailures.With(baseErrorLabels)
 		notRegistered.Inc()
 		ch <- notRegistered
-		return fmt.Errorf("no registered measurement for %s", metric.Metadata.Name)
+		return fmt.Errorf("instance has no measurement %s", metric.Metadata.Name)
 	}
 	value, err := transformer.TransformValue(measurement)
 	//exposing different value transformation errors as metrics.
 	//this is a nice example of using errors with switch statements
 	if err != nil {
 		switch err {
+		//When a Measurement exists, but has no datapoints.
 		case transformer.ErrNoData:
 			baseErrorLabels["error"] = "no_data"
 		default:
