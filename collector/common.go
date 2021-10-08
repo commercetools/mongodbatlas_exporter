@@ -2,6 +2,7 @@ package collector
 
 import (
 	"errors"
+	"fmt"
 	transformer "mongodbatlas_exporter/collector/transformer"
 	m "mongodbatlas_exporter/model"
 
@@ -26,17 +27,37 @@ type metric struct {
 	Metadata *m.MeasurementMetadata
 }
 
+//ErrorLabels consumes prometheus.Labels and adds more labels to the map.
+//Perhaps this is a chainable pattern we can reuse on other types to have a
+//consistent interface for working with labels.
+//The prometheus API is fairly inconcsistent where many APIs require a slice of
+//label names or label values.
+//ErrorLabels original need was to combine labels from a Measurer and use them
+//with a prometheus.CounterVec to select a particular counter.
+func (x *metric) ErrorLabels(extraLabels prometheus.Labels) prometheus.Labels {
+	result := prometheus.Labels{
+		"atlas_metric": x.Metadata.Name,
+	}
+
+	for key, value := range extraLabels {
+		result[key] = value
+	}
+
+	return result
+}
+
 type basicCollector struct {
 	client m.Client
 	logger log.Logger
 
-	up                                                              prometheus.Gauge
-	totalScrapes, scrapeFailures, measurementTransformationFailures prometheus.Counter
-	metrics                                                         []*metric
+	up                                prometheus.Gauge
+	totalScrapes, scrapeFailures      prometheus.Counter
+	measurementTransformationFailures prometheus.CounterVec
+	metrics                           []*metric
 }
 
 // newBasicCollector creates basicCollector
-func newBasicCollector(logger log.Logger, client m.Client, measurementsMetadata map[m.MeasurementID]*m.MeasurementMetadata, defaultLabels []string, collectorPrefix string) (*basicCollector, error) {
+func newBasicCollector(logger log.Logger, client m.Client, measurementsMetadata map[m.MeasurementID]*m.MeasurementMetadata, measurer m.Measurer, collectorPrefix string) (*basicCollector, error) {
 	var metrics []*metric
 	for _, measurementMetadata := range measurementsMetadata {
 		promName, err := transformer.TransformName(measurementMetadata)
@@ -57,12 +78,13 @@ func newBasicCollector(logger log.Logger, client m.Client, measurementsMetadata 
 			Desc: prometheus.NewDesc(
 				prometheus.BuildFQName(namespace, collectorPrefix, promName),
 				"Original measurements.name: '"+measurementMetadata.Name+"'. "+defaultHelp,
-				defaultLabels, nil,
+				measurer.LabelNames(), nil,
 			),
 			Metadata: measurementMetadata,
 		}
 		metrics = append(metrics, &metric)
 	}
+	failureLabels := append(measurer.LabelNames(), "atlas_metric", "error")
 
 	return &basicCollector{
 		up: prometheus.NewGauge(prometheus.GaugeOpts{
@@ -77,14 +99,13 @@ func newBasicCollector(logger log.Logger, client m.Client, measurementsMetadata 
 			Name: prometheus.BuildFQName(namespace, collectorPrefix, "scrape_failures_total"),
 			Help: scrapeFailuresHelp,
 		}),
-		measurementTransformationFailures: prometheus.NewCounter(prometheus.CounterOpts{
+		measurementTransformationFailures: *prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: prometheus.BuildFQName(namespace, collectorPrefix, "measurement_transformation_failures_total"),
 			Help: measurementTransformationFailuresHelp,
-		}),
+		}, failureLabels),
 		metrics: metrics,
-
-		client: client,
-		logger: logger,
+		client:  client,
+		logger:  logger,
 	}, nil
 }
 
@@ -93,9 +114,58 @@ func (c *basicCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.up.Desc()
 	ch <- c.totalScrapes.Desc()
 	ch <- c.scrapeFailures.Desc()
-	ch <- c.measurementTransformationFailures.Desc()
 
 	for _, metric := range c.metrics {
 		ch <- metric.Desc
 	}
+}
+
+//report may make more sense being renamed Collect since it is really the parent method
+//for Collect on any sub-type of basicCollecor.
+//Any Measurer and metric can use this common report function to send metrics to prometheus.
+//ProcessCollector and DiskCollector have a small number of particular metrics that they must report
+//themselves using their derivative implementation of Collect.
+//Another nice facet of "report" is that it communicates meaning using errors rather than logs. The meaning
+//can be interpreted within the program as well as by operators.
+func (c *basicCollector) report(measurer m.Measurer, metric *metric, ch chan<- prometheus.Metric) error {
+	measurement, ok := measurer.GetMeasurements()[metric.Metadata.ID()]
+	baseErrorLabels := metric.ErrorLabels(measurer.PromLabels())
+
+	//This case is different from no_data because it indicates
+	//that the measurement does not exist at all.
+	//This often occurs with oplog delay metrics on primaries
+	//because they do not report that metric as only secondaries have
+	//replication delay.
+	if !ok {
+		baseErrorLabels["error"] = "not_found"
+		notRegistered := c.measurementTransformationFailures.With(baseErrorLabels)
+		notRegistered.Inc()
+		ch <- notRegistered
+		return fmt.Errorf("instance has no measurement %s", metric.Metadata.Name)
+	}
+	value, err := transformer.TransformValue(measurement)
+	//exposing different value transformation errors as metrics.
+	//this is a nice example of using errors with switch statements
+	if err != nil {
+		switch err {
+		//When a Measurement exists, but has no datapoints.
+		case transformer.ErrNoData:
+			baseErrorLabels["error"] = "no_data"
+		default:
+			baseErrorLabels["error"] = "value"
+		}
+
+		valueError := c.measurementTransformationFailures.With(baseErrorLabels)
+		valueError.Inc()
+		ch <- valueError
+		return err
+	}
+
+	ch <- prometheus.MustNewConstMetric(
+		metric.Desc,
+		metric.Type,
+		value,
+		measurer.LabelValues()...,
+	)
+	return nil
 }

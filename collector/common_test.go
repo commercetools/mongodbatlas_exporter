@@ -11,10 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var (
-	defaultTestLabels = []string{"label_name1", "label_name2", "label_name3"}
-)
-
 const testPrefix = "stats"
 
 type MockClient struct {
@@ -38,7 +34,7 @@ func TestDesc(t *testing.T) {
 	mock := &MockClient{}
 	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
 
-	collector, err := newBasicCollector(logger, mock, getGivenMeasurementMetadata(), defaultTestLabels, testPrefix)
+	collector, err := newBasicCollector(logger, mock, getGivenMeasurementMetadata(), &m.DiskMeasurements{}, testPrefix)
 	assert.NotNil(collector)
 	assert.NoError(err)
 	descCh := make(chan *prometheus.Desc, 99)
@@ -70,17 +66,15 @@ func getExpectedDescs() []*prometheus.Desc {
 		scrapeFailuresHelp,
 		nil,
 		nil)
-	measurementTransformationFailuresDesc := prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, testPrefix, "measurement_transformation_failures_total"),
-		measurementTransformationFailuresHelp,
-		nil,
-		nil)
+	// no measurementTransformationFailuresDesc because it uses a CounterVec
+	// we would need to return ALL combinations of labels at start time to
+	// maintain the "checked" exporter status.
 	metricDesc := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, testPrefix, "disk_partition_iops_read_ratio"),
 		"Original measurements.name: 'DISK_PARTITION_IOPS_READ'. "+defaultHelp,
-		defaultTestLabels,
+		(&m.DiskMeasurements{}).LabelNames(),
 		nil)
-	return []*prometheus.Desc{upDesc, totalScrapesDesc, scrapeFailuresDesc, measurementTransformationFailuresDesc, metricDesc}
+	return []*prometheus.Desc{upDesc, totalScrapesDesc, scrapeFailuresDesc, metricDesc}
 }
 
 func getGivenMeasurementMetadata() map[m.MeasurementID]*m.MeasurementMetadata {

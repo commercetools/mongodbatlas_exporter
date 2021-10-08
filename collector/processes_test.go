@@ -59,7 +59,7 @@ func getGivenProcessesMeasurements(value1 *float32) []*m.ProcessMeasurements {
 			Version:   "4.2.13",
 			TypeName:  "REPLICA_PRIMARY",
 			Measurements: map[m.MeasurementID]*m.Measurement{
-				"QUERY_EXECUTOR_SCANNED_SCALAR_PER_SECOND": &m.Measurement{
+				"QUERY_EXECUTOR_SCANNED_SCALAR_PER_SECOND": {
 					DataPoints: []*mongodbatlas.DataPoints{
 						{
 							Timestamp: "2021-03-07T15:46:13Z",
@@ -72,7 +72,7 @@ func getGivenProcessesMeasurements(value1 *float32) []*m.ProcessMeasurements {
 					},
 					Units: m.SCALAR_PER_SECOND,
 				},
-				"TICKETS_AVAILABLE_READS_SCALAR": &m.Measurement{
+				"TICKETS_AVAILABLE_READS_SCALAR": {
 					DataPoints: []*mongodbatlas.DataPoints{},
 					Units:      m.SCALAR,
 				},
@@ -82,15 +82,22 @@ func getGivenProcessesMeasurements(value1 *float32) []*m.ProcessMeasurements {
 }
 
 func getExpectedProcessesMetrics(value float64) []prometheus.Metric {
+	processMeasurements := m.ProcessMeasurements{
+		ProjectID: "testProjectID",
+		RsName:    "testReplicaSet",
+		UserAlias: "cluster-host:27017",
+		Version:   "4.2.13",
+		TypeName:  "REPLICA_PRIMARY",
+	}
 	processQueryExecutorScanned := prometheus.MustNewConstMetric(
 		prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, processesPrefix, "query_executor_scanned_ratio"),
 			"Original measurements.name: 'QUERY_EXECUTOR_SCANNED'. "+defaultHelp,
-			defaultProcessLabels,
+			processMeasurements.LabelNames(),
 			nil),
 		prometheus.GaugeValue,
 		value,
-		"testProjectID", "testReplicaSet", "cluster-host:27017")
+		processMeasurements.LabelValues()...)
 	processUp := prometheus.MustNewConstMetric(
 		prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, processesPrefix, "up"),
@@ -119,18 +126,20 @@ func getExpectedProcessesMetrics(value float64) []prometheus.Metric {
 		prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, processesPrefix, "measurement_transformation_failures_total"),
 			measurementTransformationFailuresHelp,
-			nil,
+			append((&m.ProcessMeasurements{}).LabelNames(), "atlas_metric", "error"),
 			nil),
 		prometheus.CounterValue,
-		1)
+		1,
+		append(processMeasurements.LabelValues(), "TICKETS_AVAILABLE_READS", "no_data")...,
+	)
 	processInfo := prometheus.MustNewConstMetric(
 		prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, processesPrefix, "info"),
 			infoHelp,
-			infoProcessLabels,
+			processMeasurements.AllLabelNames(),
 			nil),
 		prometheus.GaugeValue,
 		1,
-		"testProjectID", "testReplicaSet", "cluster-host:27017", "4.2.13", "REPLICA_PRIMARY")
+		processMeasurements.AllLabelValues()...)
 	return []prometheus.Metric{processQueryExecutorScanned, processUp, totalScrapes, scrapeFailures, processInfo, measurementTransformationFailures}
 }

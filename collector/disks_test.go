@@ -59,7 +59,7 @@ func getGivenMeasurements(value1 *float32) []*m.DiskMeasurements {
 			UserAlias:     "cluster-host:27017",
 			PartitionName: "testPartition",
 			Measurements: map[m.MeasurementID]*m.Measurement{
-				"DISK_PARTITION_IOPS_READ_SCALAR_PER_SECOND": &m.Measurement{
+				"DISK_PARTITION_IOPS_READ_SCALAR_PER_SECOND": {
 					DataPoints: []*mongodbatlas.DataPoints{
 						{
 							Timestamp: "2017-08-22T20:31:12Z",
@@ -72,7 +72,7 @@ func getGivenMeasurements(value1 *float32) []*m.DiskMeasurements {
 					},
 					Units: m.SCALAR_PER_SECOND,
 				},
-				"DISK_PARTITION_SPACE_USED_BYTES": &m.Measurement{
+				"DISK_PARTITION_SPACE_USED_BYTES": {
 					DataPoints: []*mongodbatlas.DataPoints{},
 					Units:      m.BYTES,
 				},
@@ -82,6 +82,7 @@ func getGivenMeasurements(value1 *float32) []*m.DiskMeasurements {
 }
 
 func getExpectedDisksMetrics(value float64) []prometheus.Metric {
+	testLabelValues := []string{"testProjectID", "testReplicaSet", "cluster-host:27017", "testPartition"}
 	diskPartitionIopsReadRate := prometheus.MustNewConstMetric(
 		prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "disks_stats", "disk_partition_iops_read_ratio"),
@@ -90,7 +91,8 @@ func getExpectedDisksMetrics(value float64) []prometheus.Metric {
 			nil),
 		prometheus.GaugeValue,
 		value,
-		"testProjectID", "testReplicaSet", "cluster-host:27017", "testPartition")
+		testLabelValues...,
+	)
 	diskUp := prometheus.MustNewConstMetric(
 		prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, disksPrefix, "up"),
@@ -119,9 +121,11 @@ func getExpectedDisksMetrics(value float64) []prometheus.Metric {
 		prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, disksPrefix, "measurement_transformation_failures_total"),
 			measurementTransformationFailuresHelp,
-			nil,
+			append((&m.DiskMeasurements{}).LabelNames(), "atlas_metric", "error"),
 			nil),
 		prometheus.CounterValue,
-		1)
+		1,
+		append(testLabelValues, "DISK_PARTITION_SPACE_USED", "no_data")...,
+	)
 	return []prometheus.Metric{diskPartitionIopsReadRate, diskUp, totalScrapes, scrapeFailures, measurementTransformationFailures}
 }

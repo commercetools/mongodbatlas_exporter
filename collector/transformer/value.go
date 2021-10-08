@@ -1,7 +1,6 @@
 package transformer
 
 import (
-	"errors"
 	"math"
 	m "mongodbatlas_exporter/model"
 	"sort"
@@ -37,7 +36,7 @@ func containsValidDataPoints(datapoints []*mongodbatlas.DataPoints) error {
 	emptyDataPoints := len(datapoints) < 1
 
 	if emptyDataPoints {
-		return errors.New("no datapoints are available")
+		return ErrNoData
 	}
 	for _, dataPoint := range datapoints {
 		_, err := time.Parse(timestampFormat, dataPoint.Timestamp)
