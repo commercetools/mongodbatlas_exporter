@@ -102,14 +102,14 @@ func (p *ProcessMeasurements) GetMeasurements() map[MeasurementID]*Measurement {
 //LabelValues does not return the type and version as it would lead
 //to too much cardinality.
 func (p *ProcessMeasurements) LabelValues() []string {
-	return []string{p.ProjectID, p.RsName, p.UserAlias}
+	return []string{p.ProjectID, p.ID, p.RsName, p.UserAlias}
 }
 
 //LabelNames does not return the type and version as it would lead
 //to too much cardinality. Metrics that need these extra fields should
 //access them directly.
 func (p *ProcessMeasurements) LabelNames() []string {
-	return []string{"project_id", "rs_name", "user_alias"}
+	return []string{"project_id", "id", "rs_name", "user_alias"}
 }
 
 //AllLabelNames is a special case for the process info measurement.
