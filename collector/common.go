@@ -60,12 +60,7 @@ type basicCollector struct {
 // newBasicCollector creates basicCollector
 func newBasicCollector(logger log.Logger, client a.Client, measurementsMetadata map[m.MeasurementID]*m.MeasurementMetadata, measurer m.Measurer, collectorPrefix string) (*basicCollector, error) {
 	var metrics []*metric
-	count := 0
 	for _, measurementMetadata := range measurementsMetadata {
-		if count == 3 {
-			break
-		}
-		count += 1
 		promName, err := transformer.TransformName(measurementMetadata)
 		if err != nil {
 			msg := "can't transform measurement Name into metric name"
