@@ -12,10 +12,15 @@ import (
 	"go.mongodb.org/atlas/mongodbatlas"
 )
 
-func (c *MockClient) GetProcessMeasurements() ([]*m.ProcessMeasurements, m.ScrapeFailures, error) {
+func (c *MockClient) GetProcessesMeasurements() ([]*m.ProcessMeasurements, m.ScrapeFailures, error) {
 	return c.givenProcessesMeasurements, 3, nil
 }
-func (c *MockClient) GetProcessMeasurementsMetadata() (map[m.MeasurementID]*m.MeasurementMetadata, *a.HTTPError) {
+
+func (c *MockClient) GetProcessMeasurements(_ m.ProcessMeasurements) (map[m.MeasurementID]*m.Measurement, error) {
+	return make(map[m.MeasurementID]*m.Measurement), nil
+}
+
+func (c *MockClient) GetProcessesMeasurementsMetadata() (map[m.MeasurementID]*m.MeasurementMetadata, *a.HTTPError) {
 	return map[m.MeasurementID]*m.MeasurementMetadata{
 		m.NewMeasurementID("TICKETS_AVAILABLE_READS", "SCALAR"): {
 			Name:  "TICKETS_AVAILABLE_READS",
@@ -26,6 +31,23 @@ func (c *MockClient) GetProcessMeasurementsMetadata() (map[m.MeasurementID]*m.Me
 			Units: "SCALAR_PER_SECOND",
 		},
 	}, nil
+}
+
+func (c *MockClient) GetProcessMeasurementsMetadata(_ *mongodbatlas.Process) (map[m.MeasurementID]*m.MeasurementMetadata, *a.HTTPError) {
+	return map[m.MeasurementID]*m.MeasurementMetadata{
+		m.NewMeasurementID("TICKETS_AVAILABLE_READS", "SCALAR"): {
+			Name:  "TICKETS_AVAILABLE_READS",
+			Units: "SCALAR",
+		},
+		m.NewMeasurementID("QUERY_EXECUTOR_SCANNED", "SCALAR_PER_SECOND"): {
+			Name:  "QUERY_EXECUTOR_SCANNED",
+			Units: "SCALAR_PER_SECOND",
+		},
+	}, nil
+}
+
+func (c *MockClient) ListProcesses() ([]*mongodbatlas.Process, *a.HTTPError) {
+	return nil, nil
 }
 
 func TestProcessesCollector(t *testing.T) {

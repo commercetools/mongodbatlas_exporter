@@ -79,7 +79,7 @@ func newBasicCollector(logger log.Logger, client a.Client, measurementsMetadata 
 			Desc: prometheus.NewDesc(
 				prometheus.BuildFQName(namespace, collectorPrefix, promName),
 				"Original measurements.name: '"+measurementMetadata.Name+"'. "+defaultHelp,
-				measurer.LabelNames(), nil,
+				nil, measurer.PromConstLabels(),
 			),
 			Metadata: measurementMetadata,
 		}
@@ -89,20 +89,24 @@ func newBasicCollector(logger log.Logger, client a.Client, measurementsMetadata 
 
 	return &basicCollector{
 		up: prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: prometheus.BuildFQName(namespace, collectorPrefix, "up"),
-			Help: upHelp,
+			Name:        prometheus.BuildFQName(namespace, collectorPrefix, "up"),
+			Help:        upHelp,
+			ConstLabels: measurer.PromConstLabels(),
 		}),
 		totalScrapes: prometheus.NewCounter(prometheus.CounterOpts{
-			Name: prometheus.BuildFQName(namespace, collectorPrefix, "scrapes_total"),
-			Help: totalScrapesHelp,
+			Name:        prometheus.BuildFQName(namespace, collectorPrefix, "scrapes_total"),
+			Help:        totalScrapesHelp,
+			ConstLabels: measurer.PromConstLabels(),
 		}),
 		scrapeFailures: prometheus.NewCounter(prometheus.CounterOpts{
-			Name: prometheus.BuildFQName(namespace, collectorPrefix, "scrape_failures_total"),
-			Help: scrapeFailuresHelp,
+			Name:        prometheus.BuildFQName(namespace, collectorPrefix, "scrape_failures_total"),
+			Help:        scrapeFailuresHelp,
+			ConstLabels: measurer.PromConstLabels(),
 		}),
 		measurementTransformationFailures: *prometheus.NewCounterVec(prometheus.CounterOpts{
-			Name: prometheus.BuildFQName(namespace, collectorPrefix, "measurement_transformation_failures_total"),
-			Help: measurementTransformationFailuresHelp,
+			Name:        prometheus.BuildFQName(namespace, collectorPrefix, "measurement_transformation_failures_total"),
+			Help:        measurementTransformationFailuresHelp,
+			ConstLabels: measurer.PromConstLabels(),
 		}, failureLabels),
 		metrics: metrics,
 		client:  client,
@@ -166,7 +170,6 @@ func (c *basicCollector) report(measurer m.Measurer, metric *metric, ch chan<- p
 		metric.Desc,
 		metric.Type,
 		value,
-		measurer.LabelValues()...,
 	)
 	return nil
 }

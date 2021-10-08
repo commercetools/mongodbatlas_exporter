@@ -53,6 +53,8 @@ type Measurer interface {
 	//Returns a map of prometheus.Labels, mostly useful with CounterVec.With to
 	//select a particular counter to manipulate.
 	PromLabels() prometheus.Labels
+	//Returns a map of prometheus.Labels used where constant labels should be used.
+	PromConstLabels() prometheus.Labels
 }
 
 // DiskMeasurements contains all measurements of one Disk
@@ -82,10 +84,15 @@ func (d *DiskMeasurements) PromLabels() prometheus.Labels {
 	}
 }
 
+func (d *DiskMeasurements) PromConstLabels() prometheus.Labels {
+	return d.PromLabels()
+}
+
 // ProcessMeasurements contains all measurements of one Process
 type ProcessMeasurements struct {
-	Measurements                                    map[MeasurementID]*Measurement
-	ProjectID, RsName, UserAlias, Version, TypeName string
+	Measurements                                                  map[MeasurementID]*Measurement
+	ProjectID, RsName, UserAlias, Version, TypeName, Hostname, ID string
+	Port                                                          int
 }
 
 func (p *ProcessMeasurements) GetMeasurements() map[MeasurementID]*Measurement {
@@ -125,7 +132,12 @@ func (p *ProcessMeasurements) PromLabels() prometheus.Labels {
 		"project_id": p.ProjectID,
 		"rs_name":    p.RsName,
 		"user_alias": p.UserAlias,
+		"id":         p.ID,
 	}
+}
+
+func (p *ProcessMeasurements) PromConstLabels() prometheus.Labels {
+	return p.PromLabels()
 }
 
 // MeasurementMetadata contains Measurements.Name and Measurements.Unit

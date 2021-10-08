@@ -22,7 +22,7 @@ type Processes struct {
 
 // NewProcesses creates Process Prometheus metrics
 func NewProcesses(logger log.Logger, client a.Client) (*Processes, error) {
-	measurementsMetadata, httpErr := client.GetProcessMeasurementsMetadata()
+	measurementsMetadata, httpErr := client.GetProcessesMeasurementsMetadata()
 	if httpErr != nil {
 		return nil, httpErr
 	}
@@ -53,7 +53,7 @@ func (c *Processes) Collect(ch chan<- prometheus.Metric) {
 		ch <- c.scrapeFailures
 	}()
 
-	processesMeasurements, failedScrapes, err := c.client.GetProcessMeasurements()
+	processesMeasurements, failedScrapes, err := c.client.GetProcessesMeasurements()
 	if err != nil {
 		c.up.Set(0)
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"mongodbatlas_exporter/collector"
 	"mongodbatlas_exporter/mongodbatlas"
+	"mongodbatlas_exporter/registerer"
 	"net/http"
 	"os"
 	"time"
@@ -65,16 +66,9 @@ func main() {
 		return nil
 	})
 
-	go collectorInitRetry(logger, func() error {
-		processesCollector, err := collector.NewProcesses(logger, client)
-		if err != nil {
-			up.Set(0)
-			return fmt.Errorf("failed to create Processes collector, err: %w", err)
-		} else {
-			prometheus.MustRegister(processesCollector)
-		}
-		return nil
-	})
+	processRegister := registerer.NewProcessRegisterer(logger, client)
+
+	go processRegister.Observe()
 
 	up.Set(1)
 
