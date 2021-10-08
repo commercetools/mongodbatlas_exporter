@@ -2,6 +2,7 @@ package collector
 
 import (
 	m "mongodbatlas_exporter/model"
+	a "mongodbatlas_exporter/mongodbatlas"
 	"os"
 	"testing"
 
@@ -14,7 +15,7 @@ import (
 func (c *MockClient) GetProcessMeasurements() ([]*m.ProcessMeasurements, m.ScrapeFailures, error) {
 	return c.givenProcessesMeasurements, 3, nil
 }
-func (c *MockClient) GetProcessMeasurementsMetadata() (map[m.MeasurementID]*m.MeasurementMetadata, error) {
+func (c *MockClient) GetProcessMeasurementsMetadata() (map[m.MeasurementID]*m.MeasurementMetadata, *a.HTTPError) {
 	return map[m.MeasurementID]*m.MeasurementMetadata{
 		m.NewMeasurementID("TICKETS_AVAILABLE_READS", "SCALAR"): {
 			Name:  "TICKETS_AVAILABLE_READS",

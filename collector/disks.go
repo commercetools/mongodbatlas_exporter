@@ -2,6 +2,7 @@ package collector
 
 import (
 	m "mongodbatlas_exporter/model"
+	a "mongodbatlas_exporter/mongodbatlas"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
@@ -18,7 +19,7 @@ type Disks struct {
 }
 
 // NewDisks creates Disk Prometheus metrics
-func NewDisks(logger log.Logger, client m.Client) (*Disks, error) {
+func NewDisks(logger log.Logger, client a.Client) (*Disks, error) {
 	measurementsMetadata, err := client.GetDiskMeasurementsMetadata()
 	if err != nil {
 		return nil, err

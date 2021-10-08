@@ -26,6 +26,14 @@ type AtlasClient struct {
 	logger             log.Logger
 }
 
+// Client wraps mongodbatlas.Client
+type Client interface {
+	GetDiskMeasurements() ([]*m.DiskMeasurements, m.ScrapeFailures, error)
+	GetProcessMeasurements() ([]*m.ProcessMeasurements, m.ScrapeFailures, error)
+	GetDiskMeasurementsMetadata() (map[m.MeasurementID]*m.MeasurementMetadata, error)
+	GetProcessMeasurementsMetadata() (map[m.MeasurementID]*m.MeasurementMetadata, *HTTPError)
+}
+
 // NewClient returns wrapper around mongodbatlas.Client, which implements necessary functionality
 func NewClient(logger log.Logger, publicKey string, privateKey string, projectID string, atlasClusters []string) (*AtlasClient, error) {
 	t := digest.NewTransport(publicKey, privateKey)
@@ -45,12 +53,15 @@ func NewClient(logger log.Logger, publicKey string, privateKey string, projectID
 	}, nil
 }
 
-func (c *AtlasClient) listProcesses() ([]*mongodbatlas.Process, error) {
-	processes, _, err := c.mongodbatlasClient.Processes.List(context.Background(), c.projectID, nil)
+func (c *AtlasClient) listProcesses() ([]*mongodbatlas.Process, *HTTPError) {
+	processes, r, err := c.mongodbatlasClient.Processes.List(context.Background(), c.projectID, nil)
 	if err != nil {
 		msg := "failed to list processes of the project"
 		level.Error(c.logger).Log("msg", msg, "project", c.projectID, "err", err)
-		return nil, errors.New(msg)
+		return nil, &HTTPError{
+			Err:        err,
+			StatusCode: r.StatusCode,
+		}
 	}
 	if len(c.atlasClusters) == 0 {
 		return processes, nil
@@ -215,7 +226,7 @@ func (c *AtlasClient) getDiskMeasurementsForMetadata(host string, port int) (map
 }
 
 // GetProcessMeasurementsMetadata returns name and unit of all available Process measurements
-func (c *AtlasClient) GetProcessMeasurementsMetadata() (map[m.MeasurementID]*m.MeasurementMetadata, error) {
+func (c *AtlasClient) GetProcessMeasurementsMetadata() (map[m.MeasurementID]*m.MeasurementMetadata, *HTTPError) {
 	processes, err := c.listProcesses()
 	if err != nil {
 		return nil, err
@@ -250,7 +261,9 @@ func (c *AtlasClient) GetProcessMeasurementsMetadata() (map[m.MeasurementID]*m.M
 	}
 
 	if len(result) < 1 {
-		return nil, errors.New("can't find any resource with process measurements, please create Atlas resources first and restart the exporter")
+		return nil, &HTTPError{
+			Err: errors.New("can't find any resource with process measurements, please create Atlas resources first and restart the exporter"),
+		}
 	}
 
 	return result, nil

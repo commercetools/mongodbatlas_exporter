@@ -5,6 +5,7 @@ import (
 	"fmt"
 	transformer "mongodbatlas_exporter/collector/transformer"
 	m "mongodbatlas_exporter/model"
+	a "mongodbatlas_exporter/mongodbatlas"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
@@ -47,7 +48,7 @@ func (x *metric) ErrorLabels(extraLabels prometheus.Labels) prometheus.Labels {
 }
 
 type basicCollector struct {
-	client m.Client
+	client a.Client
 	logger log.Logger
 
 	up                                prometheus.Gauge
@@ -57,7 +58,7 @@ type basicCollector struct {
 }
 
 // newBasicCollector creates basicCollector
-func newBasicCollector(logger log.Logger, client m.Client, measurementsMetadata map[m.MeasurementID]*m.MeasurementMetadata, measurer m.Measurer, collectorPrefix string) (*basicCollector, error) {
+func newBasicCollector(logger log.Logger, client a.Client, measurementsMetadata map[m.MeasurementID]*m.MeasurementMetadata, measurer m.Measurer, collectorPrefix string) (*basicCollector, error) {
 	var metrics []*metric
 	for _, measurementMetadata := range measurementsMetadata {
 		promName, err := transformer.TransformName(measurementMetadata)

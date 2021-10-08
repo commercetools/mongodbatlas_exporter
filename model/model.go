@@ -128,14 +128,6 @@ func (p *ProcessMeasurements) PromLabels() prometheus.Labels {
 	}
 }
 
-// Client wraps mongodbatlas.Client
-type Client interface {
-	GetDiskMeasurements() ([]*DiskMeasurements, ScrapeFailures, error)
-	GetProcessMeasurements() ([]*ProcessMeasurements, ScrapeFailures, error)
-	GetDiskMeasurementsMetadata() (map[MeasurementID]*MeasurementMetadata, error)
-	GetProcessMeasurementsMetadata() (map[MeasurementID]*MeasurementMetadata, error)
-}
-
 // MeasurementMetadata contains Measurements.Name and Measurements.Unit
 type MeasurementMetadata struct {
 	Name  string
