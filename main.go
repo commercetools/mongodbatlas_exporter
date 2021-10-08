@@ -2,14 +2,11 @@ package main
 
 import (
 	"fmt"
-	"mongodbatlas_exporter/collector"
 	"mongodbatlas_exporter/mongodbatlas"
 	"mongodbatlas_exporter/registerer"
 	"net/http"
 	"os"
-	"time"
 
-	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -55,16 +52,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	go collectorInitRetry(logger, func() error {
-		disksCollector, err := collector.NewDisks(logger, client)
-		if err != nil {
-			up.Set(0)
-			return fmt.Errorf("failed to create Disks collector, err: %w", err)
-		} else {
-			prometheus.MustRegister(disksCollector)
-		}
-		return nil
-	})
+	// go collectorInitRetry(logger, func() error {
+	// 	disksCollector, err := collector.NewDisks(logger, client)
+	// 	if err != nil {
+	// 		up.Set(0)
+	// 		return fmt.Errorf("failed to create Disks collector, err: %w", err)
+	// 	} else {
+	// 		prometheus.MustRegister(disksCollector)
+	// 	}
+	// 	return nil
+	// })
 
 	processRegister := registerer.NewProcessRegisterer(logger, client)
 
@@ -82,13 +79,13 @@ func main() {
 	level.Info(logger).Log("msg", "successfully started http server", "address", listenAddress)
 }
 
-func collectorInitRetry(logger log.Logger, f func() error) {
-	for {
-		err := f()
-		if err == nil {
-			return
-		}
-		level.Warn(logger).Log("msg", "retrying initialize collector after error", "err", err)
-		time.Sleep(time.Duration(*collectorsIntervalRetry) * time.Minute)
-	}
-}
+// func collectorInitRetry(logger log.Logger, f func() error) {
+// 	for {
+// 		err := f()
+// 		if err == nil {
+// 			return
+// 		}
+// 		level.Warn(logger).Log("msg", "retrying initialize collector after error", "err", err)
+// 		time.Sleep(time.Duration(*collectorsIntervalRetry) * time.Minute)
+// 	}
+// }
