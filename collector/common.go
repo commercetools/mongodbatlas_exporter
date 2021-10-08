@@ -140,7 +140,7 @@ func (c *basicCollector) Describe(ch chan<- *prometheus.Desc) {
 //can be interpreted within the program as well as by operators.
 func (c *basicCollector) report(measurer m.Measurer, metric *metric, ch chan<- prometheus.Metric) error {
 	measurement, ok := measurer.GetMeasurements()[metric.Metadata.ID()]
-	baseErrorLabels := metric.ErrorLabels(measurer.PromLabels())
+	baseErrorLabels := metric.ErrorLabels(prometheus.Labels{})
 
 	//This case is different from no_data because it indicates
 	//that the measurement does not exist at all.
