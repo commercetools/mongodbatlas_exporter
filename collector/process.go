@@ -65,6 +65,8 @@ func (c *Process) Collect(ch chan<- prometheus.Metric) {
 	processMeasurements, err := c.client.GetProcessMeasurements(c.measurer)
 
 	if err != nil {
+		x := err.Error()
+		level.Debug(c.logger).Log("msg", "scrape failure", "err", err, "x", x)
 		c.scrapeFailures.Inc()
 		c.up.Set(0)
 	}

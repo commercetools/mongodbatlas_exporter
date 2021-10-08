@@ -204,7 +204,7 @@ func (c *AtlasClient) GetProcessMeasurements(measurer m.ProcessMeasurements) (ma
 		}
 	}
 
-	return processMeasurements, err
+	return processMeasurements, nil
 }
 
 // GetDiskMeasurementsMetadata returns name and unit of all available Disk measurements
