@@ -29,6 +29,14 @@ func convertMetrics(metrics []prometheus.Metric) map[string]string {
 	return result
 }
 
+//TestDesc ensures that the basic collector's Describe function properly registers prometheus
+//metrics.
+//It is important to test here that the Prometheus Descriptions have the correct descriptions
+//and uniquely identifying Constant Labels.
+//If Variable labels are added to metrics in the future (such as HTTP Status Code) that should
+//be tested for as well.
+//However, since those fields are private the best way to test is using a deep equality function
+//from a testing framework.
 func TestDesc(t *testing.T) {
 	assert := assert.New(t)
 	mock := &MockClient{}
@@ -47,34 +55,36 @@ func TestDesc(t *testing.T) {
 	}
 	expectedDescs := getExpectedDescs()
 	assert.Equal(len(expectedDescs), len(resultingDescs))
+	//Since all fields are private this gives the most actionable info.
+	//Can be difficult to read/understand output.
 	assert.ElementsMatch(expectedDescs, resultingDescs)
 }
 
+//getExpectedDescs is a mocking function to return the expected list of descriptions for a basic collector.
+//In this instance the basicCollector is for disks since we are using the constant labels from model.DiskMeasurements
 func getExpectedDescs() []*prometheus.Desc {
-	upDesc := prometheus.NewDesc(
+	fqNames := []string{
 		prometheus.BuildFQName(namespace, testPrefix, "up"),
-		upHelp,
-		nil,
-		nil)
-	totalScrapesDesc := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, testPrefix, "scrapes_total"),
-		totalScrapesHelp,
-		nil,
-		nil)
-	scrapeFailuresDesc := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, testPrefix, "scrape_failures_total"),
-		scrapeFailuresHelp,
-		nil,
-		nil)
-	// no measurementTransformationFailuresDesc because it uses a CounterVec
-	// we would need to return ALL combinations of labels at start time to
-	// maintain the "checked" exporter status.
-	metricDesc := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, testPrefix, "disk_partition_iops_read_ratio"),
-		"Original measurements.name: 'DISK_PARTITION_IOPS_READ'. "+defaultHelp,
-		(&m.DiskMeasurements{}).LabelNames(),
-		nil)
-	return []*prometheus.Desc{upDesc, totalScrapesDesc, scrapeFailuresDesc, metricDesc}
+	}
+	help := []string{
+		upHelp,
+		totalScrapesHelp,
+		scrapeFailuresHelp,
+		"Original measurements.name: 'DISK_PARTITION_IOPS_READ'. " + defaultHelp,
+	}
+
+	result := make([]*prometheus.Desc, len(fqNames))
+
+	for i := range fqNames {
+		//Build the description and add the constant labels. Constant labels are used to uniquely identify a measurement.
+		//Whereas variable lables such as HTTP Status Codes provide more context.
+		result[i] = prometheus.NewDesc(fqNames[i], help[i], nil, (&m.DiskMeasurements{}).PromConstLabels())
+	}
+
+	return result
 }
 
 func getGivenMeasurementMetadata() map[m.MeasurementID]*m.MeasurementMetadata {
