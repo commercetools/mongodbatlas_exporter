@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	transformer "mongodbatlas_exporter/collector/transformer"
+	"mongodbatlas_exporter/measurer"
 	m "mongodbatlas_exporter/model"
 	a "mongodbatlas_exporter/mongodbatlas"
 
@@ -58,7 +59,7 @@ type basicCollector struct {
 }
 
 // newBasicCollector creates basicCollector
-func newBasicCollector(logger log.Logger, client a.Client, measurementsMetadata map[m.MeasurementID]*m.MeasurementMetadata, measurer m.Measurer, collectorPrefix string) (*basicCollector, error) {
+func newBasicCollector(logger log.Logger, client a.Client, measurementsMetadata map[m.MeasurementID]*m.MeasurementMetadata, measurer measurer.Measurer, collectorPrefix string) (*basicCollector, error) {
 	var metrics []*metric
 	for _, measurementMetadata := range measurementsMetadata {
 		promName, err := transformer.TransformName(measurementMetadata)
@@ -133,7 +134,7 @@ func (c *basicCollector) Describe(ch chan<- *prometheus.Desc) {
 //themselves using their derivative implementation of Collect.
 //Another nice facet of "report" is that it communicates meaning using errors rather than logs. The meaning
 //can be interpreted within the program as well as by operators.
-func (c *basicCollector) report(measurer m.Measurer, metric *metric, ch chan<- prometheus.Metric) error {
+func (c *basicCollector) report(measurer measurer.Measurer, metric *metric, ch chan<- prometheus.Metric) error {
 	measurement, ok := measurer.GetMeasurements()[metric.Metadata.ID()]
 	baseErrorLabels := metric.ErrorLabels(prometheus.Labels{})
 

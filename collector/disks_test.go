@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"mongodbatlas_exporter/measurer"
 	"mongodbatlas_exporter/model"
 	"os"
 	"testing"
@@ -11,7 +12,7 @@ import (
 	"go.mongodb.org/atlas/mongodbatlas"
 )
 
-func (c *MockClient) GetDiskMeasurements() ([]*model.DiskMeasurements, model.ScrapeFailures, error) {
+func (c *MockClient) GetDiskMeasurements() ([]*measurer.Disk, model.ScrapeFailures, error) {
 	return c.givenDisksMeasurements, 3, nil
 }
 
@@ -60,8 +61,8 @@ func TestDisksCollector(t *testing.T) {
 	}
 }
 
-func getGivenMeasurements(value1 *float32) []*model.DiskMeasurements {
-	return []*model.DiskMeasurements{
+func getGivenMeasurements(value1 *float32) []*measurer.Disk {
+	return []*measurer.Disk{
 		{
 			ProjectID:     "testProjectID",
 			RsName:        "testReplicaSet",
@@ -91,7 +92,7 @@ func getGivenMeasurements(value1 *float32) []*model.DiskMeasurements {
 }
 
 func getExpectedDisksMetrics(value float64) []prometheus.Metric {
-	measurer := model.DiskMeasurements{
+	measurer := measurer.Disk{
 		ProjectID:     "testProjectID",
 		RsName:        "testReplicaSet",
 		UserAlias:     "cluster-host:27017",

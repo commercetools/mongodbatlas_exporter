@@ -3,6 +3,7 @@ package mongodbatlas
 import (
 	"context"
 	"errors"
+	"mongodbatlas_exporter/measurer"
 	m "mongodbatlas_exporter/model"
 	"strconv"
 	"strings"
@@ -28,9 +29,9 @@ type AtlasClient struct {
 
 // Client wraps mongodbatlas.Client
 type Client interface {
-	GetDiskMeasurements() ([]*m.DiskMeasurements, m.ScrapeFailures, error)
-	GetProcessesMeasurements() ([]*m.ProcessMeasurements, m.ScrapeFailures, error)
-	GetProcessMeasurements(m.ProcessMeasurements) (map[m.MeasurementID]*m.Measurement, error)
+	GetDiskMeasurements() ([]*measurer.Disk, m.ScrapeFailures, error)
+	GetProcessesMeasurements() ([]*measurer.Process, m.ScrapeFailures, error)
+	GetProcessMeasurements(measurer.Process) (map[m.MeasurementID]*m.Measurement, error)
 	GetDiskMeasurementsMetadata() (map[m.MeasurementID]*m.MeasurementMetadata, error)
 	GetProcessesMeasurementsMetadata() (map[m.MeasurementID]*m.MeasurementMetadata, *HTTPError)
 	GetProcessMeasurementsMetadata(process *mongodbatlas.Process) (map[m.MeasurementID]*m.MeasurementMetadata, *HTTPError)
@@ -108,7 +109,7 @@ func (c *AtlasClient) listProcessMeasurements(host string, port int) (*mongodbat
 }
 
 // GetDiskMeasurements returns measurements for all disks of a Project
-func (c *AtlasClient) GetDiskMeasurements() ([]*m.DiskMeasurements, m.ScrapeFailures, error) {
+func (c *AtlasClient) GetDiskMeasurements() ([]*measurer.Disk, m.ScrapeFailures, error) {
 	scrapeFailures := m.ScrapeFailures(0)
 
 	processes, err := c.ListProcesses()
@@ -116,7 +117,7 @@ func (c *AtlasClient) GetDiskMeasurements() ([]*m.DiskMeasurements, m.ScrapeFail
 		return nil, 0, err
 	}
 
-	result := make([]*m.DiskMeasurements, 0, len(processes))
+	result := make([]*measurer.Disk, 0, len(processes))
 	for _, process := range processes {
 		disks, err := c.listDisks(process.Hostname, process.Port)
 		if err != nil {
@@ -138,7 +139,7 @@ func (c *AtlasClient) GetDiskMeasurements() ([]*m.DiskMeasurements, m.ScrapeFail
 					Units:      m.UnitEnum(measurement.Units),
 				}
 			}
-			result = append(result, &m.DiskMeasurements{
+			result = append(result, &measurer.Disk{
 				Measurements:  diskMeasurements,
 				ProjectID:     process.GroupID,
 				RsName:        process.ReplicaSetName,
@@ -152,7 +153,7 @@ func (c *AtlasClient) GetDiskMeasurements() ([]*m.DiskMeasurements, m.ScrapeFail
 }
 
 // GetProcessMeasurements returns measurements for all processes of a Project
-func (c *AtlasClient) GetProcessesMeasurements() ([]*m.ProcessMeasurements, m.ScrapeFailures, error) {
+func (c *AtlasClient) GetProcessesMeasurements() ([]*measurer.Process, m.ScrapeFailures, error) {
 	scrapeFailures := m.ScrapeFailures(0)
 
 	processes, err := c.ListProcesses()
@@ -160,7 +161,7 @@ func (c *AtlasClient) GetProcessesMeasurements() ([]*m.ProcessMeasurements, m.Sc
 		return nil, 0, err
 	}
 
-	result := make([]*m.ProcessMeasurements, 0, len(processes))
+	result := make([]*measurer.Process, 0, len(processes))
 	for _, process := range processes {
 		measurements, err := c.listProcessMeasurements(process.Hostname, process.Port)
 		if err != nil {
@@ -176,7 +177,7 @@ func (c *AtlasClient) GetProcessesMeasurements() ([]*m.ProcessMeasurements, m.Sc
 				Units:      m.UnitEnum(measurement.Units),
 			}
 		}
-		result = append(result, &m.ProcessMeasurements{
+		result = append(result, &measurer.Process{
 			Measurements: processMeasurements,
 			ProjectID:    process.GroupID,
 			RsName:       process.ReplicaSetName,
@@ -190,7 +191,7 @@ func (c *AtlasClient) GetProcessesMeasurements() ([]*m.ProcessMeasurements, m.Sc
 }
 
 // GetProcessMeasurements returns measurements for all processes of a Project
-func (c *AtlasClient) GetProcessMeasurements(measurer m.ProcessMeasurements) (map[m.MeasurementID]*m.Measurement, error) {
+func (c *AtlasClient) GetProcessMeasurements(measurer measurer.Process) (map[m.MeasurementID]*m.Measurement, error) {
 	measurements, err := c.listProcessMeasurements(measurer.Hostname, measurer.Port)
 	if err != nil {
 		return nil, err

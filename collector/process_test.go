@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"mongodbatlas_exporter/measurer"
 	m "mongodbatlas_exporter/model"
 	a "mongodbatlas_exporter/mongodbatlas"
 	"os"
@@ -12,11 +13,11 @@ import (
 	"go.mongodb.org/atlas/mongodbatlas"
 )
 
-func (c *MockClient) GetProcessesMeasurements() ([]*m.ProcessMeasurements, m.ScrapeFailures, error) {
+func (c *MockClient) GetProcessesMeasurements() ([]*measurer.Process, m.ScrapeFailures, error) {
 	return c.givenProcessesMeasurements, 3, nil
 }
 
-func (c *MockClient) GetProcessMeasurements(_ m.ProcessMeasurements) (map[m.MeasurementID]*m.Measurement, error) {
+func (c *MockClient) GetProcessMeasurements(_ measurer.Process) (map[m.MeasurementID]*m.Measurement, error) {
 	return make(map[m.MeasurementID]*m.Measurement), nil
 }
 
@@ -57,14 +58,16 @@ func TestProcessesCollector(t *testing.T) {
 	mock.givenProcessesMeasurements = getGivenProcessesMeasurements(&value)
 	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
 
-	processes, err := NewProcesses(logger, mock)
-	assert.NotNil(processes)
+	process := mongodbatlas.Process{}
+
+	processCollector, err := NewProcessCollector(logger, mock, &process)
+	assert.NotNil(processCollector)
 	assert.NoError(err)
 
 	metricsCh := make(chan prometheus.Metric, 99)
 	defer close(metricsCh)
 	expectedMetrics := getExpectedProcessesMetrics(float64(value))
-	processes.Collect(metricsCh)
+	processCollector.Collect(metricsCh)
 	var resultingMetrics []prometheus.Metric
 	for len(metricsCh) > 0 {
 		resultingMetrics = append(resultingMetrics, <-metricsCh)
@@ -73,8 +76,8 @@ func TestProcessesCollector(t *testing.T) {
 	assert.Equal(convertMetrics(expectedMetrics), convertMetrics(resultingMetrics))
 }
 
-func getGivenProcessesMeasurements(value1 *float32) []*m.ProcessMeasurements {
-	return []*m.ProcessMeasurements{
+func getGivenProcessesMeasurements(value1 *float32) []*measurer.Process {
+	return []*measurer.Process{
 		{
 			ProjectID: "testProjectID",
 			RsName:    "testReplicaSet",
@@ -105,7 +108,7 @@ func getGivenProcessesMeasurements(value1 *float32) []*m.ProcessMeasurements {
 }
 
 func getExpectedProcessesMetrics(value float64) []prometheus.Metric {
-	processMeasurements := m.ProcessMeasurements{
+	processMeasurements := measurer.Process{
 		ProjectID: "testProjectID",
 		RsName:    "testReplicaSet",
 		UserAlias: "cluster-host:27017",
@@ -149,7 +152,7 @@ func getExpectedProcessesMetrics(value float64) []prometheus.Metric {
 		prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, processesPrefix, "measurement_transformation_failures_total"),
 			measurementTransformationFailuresHelp,
-			append((&m.ProcessMeasurements{}).LabelNames(), "atlas_metric", "error"),
+			append((&measurer.Process{}).LabelNames(), "atlas_metric", "error"),
 			nil),
 		prometheus.CounterValue,
 		1,

@@ -1,7 +1,7 @@
 package collector
 
 import (
-	"mongodbatlas_exporter/model"
+	"mongodbatlas_exporter/measurer"
 	a "mongodbatlas_exporter/mongodbatlas"
 
 	"github.com/go-kit/kit/log"
@@ -11,11 +11,16 @@ import (
 	"go.mongodb.org/atlas/mongodbatlas"
 )
 
+const (
+	processesPrefix = "processes_stats"
+	infoHelp        = "Process info metric"
+)
+
 // Process information struct
 type Process struct {
 	*basicCollector
 	info     prometheus.Gauge
-	measurer model.ProcessMeasurements
+	measurer measurer.Process
 }
 
 func NewProcessCollector(logger log.Logger, client a.Client, p *mongodbatlas.Process) (*Process, error) {
@@ -23,18 +28,9 @@ func NewProcessCollector(logger log.Logger, client a.Client, p *mongodbatlas.Pro
 	if httpErr != nil {
 		return nil, httpErr
 	}
-	processMetadata := model.ProcessMeasurements{
-		ProjectID: p.GroupID,
-		RsName:    p.ReplicaSetName,
-		UserAlias: p.UserAlias,
-		Version:   p.Version,
-		TypeName:  p.TypeName,
-		Hostname:  p.Hostname,
-		Port:      p.Port,
-		ID:        p.ID,
-	}
+	processMetadata := measurer.FromMongodbAtlasProcess(p)
 
-	basicCollector, err := newBasicCollector(logger, client, metadata, &processMetadata, processesPrefix)
+	basicCollector, err := newBasicCollector(logger, client, metadata, processMetadata, processesPrefix)
 
 	if err != nil {
 		return nil, err
@@ -48,7 +44,7 @@ func NewProcessCollector(logger log.Logger, client a.Client, p *mongodbatlas.Pro
 				Help:        infoHelp,
 				ConstLabels: processMetadata.PromConstLabels(),
 			}),
-		measurer: processMetadata,
+		measurer: *processMetadata,
 	}
 
 	return process, nil

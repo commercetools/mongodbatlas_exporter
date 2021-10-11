@@ -1,7 +1,7 @@
 package collector
 
 import (
-	m "mongodbatlas_exporter/model"
+	"mongodbatlas_exporter/measurer"
 	a "mongodbatlas_exporter/mongodbatlas"
 
 	"github.com/go-kit/kit/log"
@@ -23,7 +23,7 @@ func NewDisks(logger log.Logger, client a.Client) (*Disks, error) {
 		return nil, err
 	}
 
-	basicCollector, err := newBasicCollector(logger, client, measurementsMetadata, &m.DiskMeasurements{}, disksPrefix)
+	basicCollector, err := newBasicCollector(logger, client, measurementsMetadata, &measurer.Disk{}, disksPrefix)
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"mongodbatlas_exporter/measurer"
 	m "mongodbatlas_exporter/model"
 	"os"
 	"testing"
@@ -14,8 +15,8 @@ import (
 const testPrefix = "stats"
 
 type MockClient struct {
-	givenDisksMeasurements     []*m.DiskMeasurements
-	givenProcessesMeasurements []*m.ProcessMeasurements
+	givenDisksMeasurements     []*measurer.Disk
+	givenProcessesMeasurements []*measurer.Process
 }
 
 func convertMetrics(metrics []prometheus.Metric) map[string]string {
@@ -42,7 +43,7 @@ func TestDesc(t *testing.T) {
 	mock := &MockClient{}
 	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
 
-	collector, err := newBasicCollector(logger, mock, getGivenMeasurementMetadata(), &m.DiskMeasurements{}, testPrefix)
+	collector, err := newBasicCollector(logger, mock, getGivenMeasurementMetadata(), &measurer.Disk{}, testPrefix)
 	assert.NotNil(collector)
 	assert.NoError(err)
 	descCh := make(chan *prometheus.Desc, 99)
@@ -81,7 +82,7 @@ func getExpectedDescs() []*prometheus.Desc {
 	for i := range fqNames {
 		//Build the description and add the constant labels. Constant labels are used to uniquely identify a measurement.
 		//Whereas variable lables such as HTTP Status Codes provide more context.
-		result[i] = prometheus.NewDesc(fqNames[i], help[i], nil, (&m.DiskMeasurements{}).PromConstLabels())
+		result[i] = prometheus.NewDesc(fqNames[i], help[i], nil, (&measurer.Disk{}).PromConstLabels())
 	}
 
 	return result
