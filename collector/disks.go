@@ -9,8 +9,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-var defaultDiskLabels = []string{"project_id", "rs_name", "user_alias", "partition_name"}
-
 const disksPrefix = "disks_stats"
 
 // Disks information struct
