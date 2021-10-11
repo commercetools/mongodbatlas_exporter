@@ -2,7 +2,6 @@ package collector
 
 import (
 	"mongodbatlas_exporter/model"
-	m "mongodbatlas_exporter/model"
 	"os"
 	"testing"
 
@@ -12,17 +11,17 @@ import (
 	"go.mongodb.org/atlas/mongodbatlas"
 )
 
-func (c *MockClient) GetDiskMeasurements() ([]*m.DiskMeasurements, m.ScrapeFailures, error) {
+func (c *MockClient) GetDiskMeasurements() ([]*model.DiskMeasurements, model.ScrapeFailures, error) {
 	return c.givenDisksMeasurements, 3, nil
 }
 
-func (c *MockClient) GetDiskMeasurementsMetadata() (map[m.MeasurementID]*m.MeasurementMetadata, error) {
-	return map[m.MeasurementID]*m.MeasurementMetadata{
-		m.NewMeasurementID("DISK_PARTITION_IOPS_READ", "SCALAR_PER_SECOND"): {
+func (c *MockClient) GetDiskMeasurementsMetadata() (map[model.MeasurementID]*model.MeasurementMetadata, error) {
+	return map[model.MeasurementID]*model.MeasurementMetadata{
+		model.NewMeasurementID("DISK_PARTITION_IOPS_READ", "SCALAR_PER_SECOND"): {
 			Name:  "DISK_PARTITION_IOPS_READ",
 			Units: "SCALAR_PER_SECOND",
 		},
-		m.NewMeasurementID("DISK_PARTITION_SPACE_USED", "BYTES"): {
+		model.NewMeasurementID("DISK_PARTITION_SPACE_USED", "BYTES"): {
 			Name:  "DISK_PARTITION_SPACE_USED",
 			Units: "BYTES",
 		},
@@ -61,14 +60,14 @@ func TestDisksCollector(t *testing.T) {
 	}
 }
 
-func getGivenMeasurements(value1 *float32) []*m.DiskMeasurements {
-	return []*m.DiskMeasurements{
+func getGivenMeasurements(value1 *float32) []*model.DiskMeasurements {
+	return []*model.DiskMeasurements{
 		{
 			ProjectID:     "testProjectID",
 			RsName:        "testReplicaSet",
 			UserAlias:     "cluster-host:27017",
 			PartitionName: "testPartition",
-			Measurements: map[m.MeasurementID]*m.Measurement{
+			Measurements: map[model.MeasurementID]*model.Measurement{
 				"DISK_PARTITION_IOPS_READ_SCALAR_PER_SECOND": {
 					DataPoints: []*mongodbatlas.DataPoints{
 						{
@@ -80,11 +79,11 @@ func getGivenMeasurements(value1 *float32) []*m.DiskMeasurements {
 							Value:     value1,
 						},
 					},
-					Units: m.SCALAR_PER_SECOND,
+					Units: model.SCALAR_PER_SECOND,
 				},
 				"DISK_PARTITION_SPACE_USED_BYTES": {
 					DataPoints: []*mongodbatlas.DataPoints{},
-					Units:      m.BYTES,
+					Units:      model.BYTES,
 				},
 			},
 		},
