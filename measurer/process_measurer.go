@@ -59,8 +59,10 @@ func (p *Process) PromConstLabels() prometheus.Labels {
 	return p.PromLabels()
 }
 
-//FromMongodbAtlasProcess
-func FromMongodbAtlasProcess(p *mongodbatlas.Process) *Process {
+//FromMongodbAtlasProcess creates a measurer.Process by extracting
+//the important features from a mongodbatlas.Process so we can uniquely
+//identify prometheus metrics using labels.
+func ProcessFromMongodbAtlasProcess(p *mongodbatlas.Process) *Process {
 	return &Process{
 		ProjectID: p.GroupID,
 		RsName:    p.ReplicaSetName,

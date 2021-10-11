@@ -4,6 +4,7 @@ import (
 	"mongodbatlas_exporter/model"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"go.mongodb.org/atlas/mongodbatlas"
 )
 
 // DiskMeasurements contains all measurements of one Disk
@@ -35,4 +36,13 @@ func (d *Disk) PromLabels() prometheus.Labels {
 
 func (d *Disk) PromConstLabels() prometheus.Labels {
 	return d.PromLabels()
+}
+
+func DiskFromMongodbAtlasProcess(p *mongodbatlas.Process, partitionName string) *Disk {
+	return &Disk{
+		ProjectID:     p.GroupID,
+		RsName:        p.ReplicaSetName,
+		UserAlias:     p.UserAlias,
+		PartitionName: partitionName,
+	}
 }

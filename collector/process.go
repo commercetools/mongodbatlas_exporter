@@ -28,7 +28,7 @@ func NewProcessCollector(logger log.Logger, client a.Client, p *mongodbatlas.Pro
 	if httpErr != nil {
 		return nil, httpErr
 	}
-	processMetadata := measurer.FromMongodbAtlasProcess(p)
+	processMetadata := measurer.ProcessFromMongodbAtlasProcess(p)
 
 	basicCollector, err := newBasicCollector(logger, client, metadata, processMetadata, processesPrefix)
 
