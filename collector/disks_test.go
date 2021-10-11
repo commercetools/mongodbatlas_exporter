@@ -53,7 +53,12 @@ func TestDisksCollector(t *testing.T) {
 		resultingMetrics = append(resultingMetrics, <-metricsCh)
 	}
 	assert.Equal(len(expectedMetrics), len(resultingMetrics))
-	assert.Equal(convertMetrics(expectedMetrics), convertMetrics(resultingMetrics))
+	expectedMetricMap := convertMetrics(expectedMetrics)
+	actualMetricMap := convertMetrics(resultingMetrics)
+
+	for key, value := range expectedMetricMap {
+		assert.Equal(value, actualMetricMap[key], "key %s", key)
+	}
 }
 
 func getGivenMeasurements(value1 *float32) []*m.DiskMeasurements {
