@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"mongodbatlas_exporter/model"
 	m "mongodbatlas_exporter/model"
 	"os"
 	"testing"
@@ -28,6 +29,10 @@ func (c *MockClient) GetDiskMeasurementsMetadata() (map[m.MeasurementID]*m.Measu
 	}, nil
 }
 
+//TestDisksCollector initializes a disk collector and then checks
+//that the scraped metrics output have the correct values, units, and labels.
+//This is different from TestDesc which is checking the collector's Describe function.
+//This is a test of the Collect function.
 func TestDisksCollector(t *testing.T) {
 	assert := assert.New(t)
 	value := float32(3.14)
@@ -82,50 +87,67 @@ func getGivenMeasurements(value1 *float32) []*m.DiskMeasurements {
 }
 
 func getExpectedDisksMetrics(value float64) []prometheus.Metric {
-	testLabelValues := []string{"testProjectID", "testReplicaSet", "cluster-host:27017", "testPartition"}
-	diskPartitionIopsReadRate := prometheus.MustNewConstMetric(
-		prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, "disks_stats", "disk_partition_iops_read_ratio"),
-			"Original measurements.name: 'DISK_PARTITION_IOPS_READ'. "+defaultHelp,
-			defaultDiskLabels,
-			nil),
-		prometheus.GaugeValue,
+	measurer := model.DiskMeasurements{
+		ProjectID:     "testProjectID",
+		RsName:        "testReplicaSet",
+		UserAlias:     "cluster-host:27017",
+		PartitionName: "testPartition",
+	}
+	fqNames := []string{
+		prometheus.BuildFQName(namespace, "disks_stats", "disk_partition_iops_read_ratio"),
+		prometheus.BuildFQName(namespace, disksPrefix, "up"),
+		prometheus.BuildFQName(namespace, disksPrefix, "scrapes_total"),
+		prometheus.BuildFQName(namespace, disksPrefix, "scrape_failures_total"),
+		prometheus.BuildFQName(namespace, disksPrefix, "measurement_transformation_failures_total"),
+	}
+
+	variableLabels := [][]string{
+		nil,
+		nil,
+		nil,
+		nil,
+		//measurement_transformation_failures_total has variable labels
+		//to indicate the metric and the error.
+		{"atlas_metric", "error"},
+	}
+
+	variableLabelValues := [][]string{
+		nil,
+		nil,
+		nil,
+		nil,
+		//these correspond to "atlas_metric" and "error" variable labels
+		//for measurement_transformation_failures_total
+		{"DISK_PARTITION_SPACE_USED", "no_data"},
+	}
+
+	help := []string{
+		"Original measurements.name: 'DISK_PARTITION_IOPS_READ'. " + defaultHelp,
+		upHelp,
+		totalScrapesHelp,
+		scrapeFailuresHelp,
+		measurementTransformationFailuresHelp,
+	}
+
+	values := []float64{
 		value,
-		testLabelValues...,
-	)
-	diskUp := prometheus.MustNewConstMetric(
-		prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, disksPrefix, "up"),
-			upHelp,
-			nil,
-			nil),
-		prometheus.GaugeValue,
-		1)
-	totalScrapes := prometheus.MustNewConstMetric(
-		prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, disksPrefix, "scrapes_total"),
-			totalScrapesHelp,
-			nil,
-			nil),
-		prometheus.CounterValue,
-		1)
-	scrapeFailures := prometheus.MustNewConstMetric(
-		prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, disksPrefix, "scrape_failures_total"),
-			scrapeFailuresHelp,
-			nil,
-			nil),
-		prometheus.CounterValue,
-		3)
-	measurementTransformationFailures := prometheus.MustNewConstMetric(
-		prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, disksPrefix, "measurement_transformation_failures_total"),
-			measurementTransformationFailuresHelp,
-			append((&m.DiskMeasurements{}).LabelNames(), "atlas_metric", "error"),
-			nil),
-		prometheus.CounterValue,
 		1,
-		append(testLabelValues, "DISK_PARTITION_SPACE_USED", "no_data")...,
-	)
-	return []prometheus.Metric{diskPartitionIopsReadRate, diskUp, totalScrapes, scrapeFailures, measurementTransformationFailures}
+		1,
+		3,
+		1,
+	}
+
+	results := make([]prometheus.Metric, len(values))
+
+	for i := range results {
+		//measurer.PromConstLabels ensures that all the identifying fields
+		//for a particular instance of a disk are added to every metric.
+		results[i] = prometheus.MustNewConstMetric(
+			prometheus.NewDesc(fqNames[i], help[i], variableLabels[i], measurer.PromConstLabels()),
+			prometheus.GaugeValue,
+			values[i],
+			variableLabelValues[i]...,
+		)
+	}
+	return results
 }
