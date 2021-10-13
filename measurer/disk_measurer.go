@@ -40,6 +40,10 @@ func (d *Disk) PromConstLabels() prometheus.Labels {
 	return d.PromLabels()
 }
 
+func (d *Disk) PromVariableLabelValues() []string {
+	return []string{d.PartitionName}
+}
+
 func DiskFromMongodbAtlasProcessDisk(p *mongodbatlas.ProcessDisk) *Disk {
 	return &Disk{
 		PartitionName: p.PartitionName,

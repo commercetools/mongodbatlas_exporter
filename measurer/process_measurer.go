@@ -65,6 +65,10 @@ func (p *Process) PromConstLabels() prometheus.Labels {
 	return p.PromLabels()
 }
 
+func (p *Process) PromVariableLabelValues() []string {
+	return []string{}
+}
+
 //FromMongodbAtlasProcess creates a measurer.Process by extracting
 //the important features from a mongodbatlas.Process so we can uniquely
 //identify prometheus metrics using labels.

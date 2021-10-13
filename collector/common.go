@@ -179,7 +179,7 @@ func (c *basicCollector) report(measurer measurer.Measurer, metric *metric, ch c
 		metric.Desc,
 		metric.Type,
 		value,
-		measurer.LabelValues()...,
+		measurer.PromVariableLabelValues()...,
 	)
 	return nil
 }

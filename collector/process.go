@@ -69,12 +69,16 @@ func NewProcessCollector(logger log.Logger, client a.Client, p *mongodbatlas.Pro
 		for key := range disk.Metadata {
 			if _, ok := everyDiskMetadataKey[key]; !ok {
 				everyDiskMetadataKey[key] = true
-				metric, err := metadataToMetric(processMetadata.Metadata[key], disksPrefix, disk.LabelNames(), processMetadata.PromConstLabels())
-				if err != nil {
-					level.Warn(logger).Log("msg", "could not transform metadata to metric", "err", err)
-					continue
+				metadata, ok := processMetadata.Metadata[key]
+
+				if ok {
+					metric, err := metadataToMetric(metadata, disksPrefix, disk.LabelNames(), processMetadata.PromConstLabels())
+					if err != nil {
+						level.Warn(logger).Log("msg", "could not transform metadata to metric", "err", err)
+						continue
+					}
+					basicCollector.metrics = append(basicCollector.metrics, metric)
 				}
-				basicCollector.metrics = append(basicCollector.metrics, metric)
 			}
 		}
 	}

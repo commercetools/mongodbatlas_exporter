@@ -23,4 +23,5 @@ type Measurer interface {
 	PromLabels() prometheus.Labels
 	//Returns a map of prometheus.Labels used where constant labels should be used.
 	PromConstLabels() prometheus.Labels
+	PromVariableLabelValues() []string
 }
