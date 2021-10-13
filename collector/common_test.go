@@ -2,6 +2,7 @@ package collector
 
 import (
 	"mongodbatlas_exporter/measurer"
+	"mongodbatlas_exporter/model"
 	m "mongodbatlas_exporter/model"
 	"os"
 	"testing"
@@ -15,7 +16,7 @@ import (
 const testPrefix = "stats"
 
 type MockClient struct {
-	givenDisksMeasurements     []*measurer.Disk
+	givenDisksMeasurements     map[model.MeasurementID]*model.Measurement
 	givenProcessesMeasurements []*measurer.Process
 }
 

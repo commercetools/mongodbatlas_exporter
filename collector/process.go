@@ -2,6 +2,7 @@ package collector
 
 import (
 	"mongodbatlas_exporter/measurer"
+	"mongodbatlas_exporter/model"
 	a "mongodbatlas_exporter/mongodbatlas"
 
 	"github.com/go-kit/kit/log"
@@ -13,6 +14,7 @@ import (
 
 const (
 	processesPrefix = "processes_stats"
+	disksPrefix     = "disks_stats"
 	infoHelp        = "Process info metric"
 )
 
@@ -37,7 +39,14 @@ func NewProcessCollector(logger log.Logger, client a.Client, p *mongodbatlas.Pro
 	processMetadata.Disks = make([]*measurer.Disk, len(disks))
 
 	for i := range disks {
+		diskMetadata, err := client.GetDiskMeasurementsMetadata()
+		if err != nil {
+			//TODO: Definitely needs to be a metric
+			level.Warn(logger).Log("msg", "could not get disk metadata", "disk", disks[i].PartitionName, "process", p.ID, "group", p.GroupID)
+			continue
+		}
 		processMetadata.Disks[i] = measurer.DiskFromMongodbAtlasProcessDisk(disks[i])
+		processMetadata.Disks[i].Metadata = diskMetadata
 	}
 
 	//get the metadata for the measurer.
@@ -51,6 +60,23 @@ func NewProcessCollector(logger log.Logger, client a.Client, p *mongodbatlas.Pro
 
 	if err != nil {
 		return nil, err
+	}
+
+	//here a set is used to add each measurement to the collector just once.
+	//each disk has the variable label: partition_name
+	everyDiskMetadataKey := make(map[model.MeasurementID]bool, len(processMetadata.Disks[0].Metadata))
+	for _, disk := range processMetadata.Disks {
+		for key := range disk.Metadata {
+			if _, ok := everyDiskMetadataKey[key]; !ok {
+				everyDiskMetadataKey[key] = true
+				metric, err := metadataToMetric(processMetadata.Metadata[key], disksPrefix, disk.LabelNames(), processMetadata.PromConstLabels())
+				if err != nil {
+					level.Warn(logger).Log("msg", "could not transform metadata to metric", "err", err)
+					continue
+				}
+				basicCollector.metrics = append(basicCollector.metrics, metric)
+			}
+		}
 	}
 
 	process := &Process{
@@ -97,6 +123,32 @@ func (c *Process) Collect(ch chan<- prometheus.Metric) {
 
 	c.info.Set(1)
 	ch <- c.info
+
+	//this entire block is because the collector has the process metrics registered to it
+	//but not the disk metrics.
+	//I think the metrics should be registered to the MEASURER instead.
+	for _, disk := range c.measurer.Disks {
+		err := c.client.GetDiskMeasurements(&c.measurer, disk)
+		if err != nil {
+			x := err.Error()
+			level.Debug(c.logger).Log("msg", "scrape failure", "err", err, "x", x)
+			c.scrapeFailures.Inc()
+			c.up.Set(0)
+		}
+		c.up.Set(1)
+		for _, metadata := range disk.Metadata {
+			metric, err := metadataToMetric(metadata, disksPrefix, disk.LabelNames(), c.measurer.PromConstLabels())
+			if err != nil {
+				level.Debug(c.logger).Log("msg", "could not convert disk metadata to metric", "err", err)
+			}
+			err = c.report(disk, metric, ch)
+			if err != nil {
+				level.Debug(c.logger).Log("msg", "skipping metric", "metric", metric.Desc,
+					"err", err)
+			}
+
+		}
+	}
 }
 
 // Describe implements prometheus.Collector.

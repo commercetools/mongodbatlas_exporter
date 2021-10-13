@@ -27,7 +27,7 @@ func (d *Disk) LabelValues() []string {
 }
 
 func (d *Disk) LabelNames() []string {
-	return []string{"project_id", "rs_name", "user_alias", "partition_name"}
+	return []string{"partition_name"}
 }
 
 func (d *Disk) PromLabels() prometheus.Labels {

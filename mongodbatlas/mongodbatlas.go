@@ -29,7 +29,7 @@ type AtlasClient struct {
 
 // Client wraps mongodbatlas.Client
 type Client interface {
-	GetDiskMeasurements() ([]*measurer.Disk, m.ScrapeFailures, error)
+	GetDiskMeasurements(*measurer.Process, *measurer.Disk) error
 	GetProcessesMeasurements() ([]*measurer.Process, m.ScrapeFailures, error)
 	GetProcessMeasurements(measurer.Process) (map[m.MeasurementID]*m.Measurement, error)
 	GetDiskMeasurementsMetadata() (map[m.MeasurementID]*m.MeasurementMetadata, error)
@@ -122,44 +122,23 @@ func (c *AtlasClient) listProcessMeasurements(host string, port int) (*mongodbat
 }
 
 // GetDiskMeasurements returns measurements for all disks of a Project
-func (c *AtlasClient) GetDiskMeasurements() ([]*measurer.Disk, m.ScrapeFailures, error) {
-	scrapeFailures := m.ScrapeFailures(0)
+func (c *AtlasClient) GetDiskMeasurements(process *measurer.Process, disk *measurer.Disk) error {
 
-	processes, err := c.ListProcesses()
+	measurements, err := c.listProcessDiskMeasurements(process.Hostname, process.Port, disk.PartitionName)
 	if err != nil {
-		return nil, 0, err
+		return err
 	}
 
-	result := make([]*measurer.Disk, 0, len(processes))
-	for _, process := range processes {
-		disks, err := c.listDisks(process.Hostname, process.Port)
-		if err != nil {
-			level.Error(c.logger).Log("msg", "failed to list disks of the process", "process", process.Hostname, "port", process.Port, "err", err)
-			return nil, 0, err
-		}
-		for _, disk := range disks {
-			measurements, err := c.listProcessDiskMeasurements(process.Hostname, process.Port, disk.PartitionName)
-			if err != nil {
-				scrapeFailures++
-				level.Warn(c.logger).Log("msg", "failed to scrape measurements for the disk, skipping", "disk", disk.PartitionName, "err", err)
-				continue
-			}
-			diskMeasurements := make(map[m.MeasurementID]*m.Measurement, len(measurements.Measurements))
-			for _, measurement := range measurements.Measurements {
-				measurementID := m.NewMeasurementID(measurement.Name, measurement.Units)
-				diskMeasurements[measurementID] = &m.Measurement{
-					DataPoints: measurement.DataPoints,
-					Units:      m.UnitEnum(measurement.Units),
-				}
-			}
-			result = append(result, &measurer.Disk{
-				Measurements:  diskMeasurements,
-				PartitionName: disk.PartitionName,
-			})
+	disk.Measurements = make(map[m.MeasurementID]*m.Measurement, len(measurements.Measurements))
+	for _, measurement := range measurements.Measurements {
+		measurementID := m.NewMeasurementID(measurement.Name, measurement.Units)
+		disk.Measurements[measurementID] = &m.Measurement{
+			DataPoints: measurement.DataPoints,
+			Units:      m.UnitEnum(measurement.Units),
 		}
 	}
 
-	return result, scrapeFailures, err
+	return err
 }
 
 // GetProcessMeasurements returns measurements for all processes of a Project

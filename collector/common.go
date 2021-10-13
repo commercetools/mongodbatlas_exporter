@@ -1,7 +1,6 @@
 package collector
 
 import (
-	"errors"
 	"fmt"
 	transformer "mongodbatlas_exporter/collector/transformer"
 	"mongodbatlas_exporter/measurer"
@@ -9,7 +8,6 @@ import (
 	a "mongodbatlas_exporter/mongodbatlas"
 
 	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -58,34 +56,43 @@ type basicCollector struct {
 	metrics                           []*metric
 }
 
+//metadataToMetric transforms the measurement metadata we received from Atlas into a
+//prometheus compatible metric description.
+func metadataToMetric(metadata *m.MeasurementMetadata, collectorPrefix string, variableLabels []string, constLabels prometheus.Labels) (*metric, error) {
+	promName, err := transformer.TransformName(metadata)
+	if err != nil {
+		msg := "can't transform measurement Name (%s) into metric name"
+		return nil, fmt.Errorf(msg, metadata.Name)
+	}
+	promType, err := transformer.TransformType(metadata)
+	if err != nil {
+		msg := "can't transform measurement Units (%s) into prometheus.ValueType"
+		return nil, fmt.Errorf(msg, metadata.Units)
+	}
+
+	metric := metric{
+		Type: promType,
+		Desc: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, collectorPrefix, promName),
+			"Original measurements.name: '"+metadata.Name+"'. "+defaultHelp,
+			variableLabels, constLabels,
+		),
+		Metadata: metadata,
+	}
+
+	return &metric, nil
+}
+
 // newBasicCollector creates basicCollector
 func newBasicCollector(logger log.Logger, client a.Client, measurer measurer.Measurer, collectorPrefix string) (*basicCollector, error) {
 	var metrics []*metric
 	for _, measurementMetadata := range measurer.GetMetaData() {
-		promName, err := transformer.TransformName(measurementMetadata)
+		metric, err := metadataToMetric(measurementMetadata, collectorPrefix, nil, measurer.PromConstLabels())
 		if err != nil {
-			msg := "can't transform measurement Name into metric name"
-			level.Error(logger).Log("msg", msg, "measurementMetadata", measurementMetadata, "err", err)
-			return nil, errors.New(msg)
-		}
-		promType, err := transformer.TransformType(measurementMetadata)
-		if err != nil {
-			msg := "can't transform measurement Units into prometheus.ValueType"
-			level.Error(logger).Log("msg", msg, "measurementMetadata", measurementMetadata, "err", err)
-			return nil, errors.New(msg)
+			return nil, err
 		}
 
-		metric := metric{
-			Type: promType,
-			Desc: prometheus.NewDesc(
-				prometheus.BuildFQName(namespace, collectorPrefix, promName),
-				"Original measurements.name: '"+measurementMetadata.Name+"'. "+defaultHelp,
-				nil, measurer.PromConstLabels(),
-			),
-			Metadata: measurementMetadata,
-		}
-
-		metrics = append(metrics, &metric)
+		metrics = append(metrics, metric)
 	}
 	failureLabels := []string{"atlas_metric", "error"}
 
@@ -172,6 +179,7 @@ func (c *basicCollector) report(measurer measurer.Measurer, metric *metric, ch c
 		metric.Desc,
 		metric.Type,
 		value,
+		measurer.LabelValues()...,
 	)
 	return nil
 }
