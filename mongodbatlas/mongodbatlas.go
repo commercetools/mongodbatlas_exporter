@@ -14,6 +14,10 @@ import (
 	"go.mongodb.org/atlas/mongodbatlas"
 )
 
+const (
+	TYPE_MONGOS = "SHARD_MONGOS"
+)
+
 var opts = &mongodbatlas.ProcessMeasurementListOptions{
 	Granularity: "PT1M",
 	Period:      "PT2M",
@@ -32,7 +36,7 @@ type Client interface {
 	GetDiskMeasurements(*measurer.Process, *measurer.Disk) error
 	GetProcessesMeasurements() ([]*measurer.Process, m.ScrapeFailures, error)
 	GetProcessMeasurements(measurer.Process) (map[m.MeasurementID]*m.Measurement, error)
-	GetDiskMeasurementsMetadata() (map[m.MeasurementID]*m.MeasurementMetadata, error)
+	GetDiskMeasurementsMetadata(*measurer.Process, *measurer.Disk) (map[m.MeasurementID]*m.MeasurementMetadata, error)
 	GetProcessesMeasurementsMetadata() (map[m.MeasurementID]*m.MeasurementMetadata, *HTTPError)
 	GetProcessMeasurementsMetadata(*measurer.Process) *HTTPError
 	ListProcesses() ([]*mongodbatlas.Process, *HTTPError)
@@ -198,44 +202,34 @@ func (c *AtlasClient) GetProcessMeasurements(measurer measurer.Process) (map[m.M
 }
 
 // GetDiskMeasurementsMetadata returns name and unit of all available Disk measurements
-func (c *AtlasClient) GetDiskMeasurementsMetadata() (map[m.MeasurementID]*m.MeasurementMetadata, error) {
-	processes, err := c.ListProcesses()
+func (c *AtlasClient) GetDiskMeasurementsMetadata(p *measurer.Process, d *measurer.Disk) (map[m.MeasurementID]*m.MeasurementMetadata, error) {
+	result, err := c.getDiskMeasurementsForMetadata(p.Hostname, p.Port, d.PartitionName)
+
 	if err != nil {
 		return nil, err
 	}
-	for _, process := range processes {
-		if process.TypeName != "SHARD_MONGOS" {
-			result, err := c.getDiskMeasurementsForMetadata(process.Hostname, process.Port)
-			if err != nil || len(result) < 1 {
-				continue
-			}
-			return result, nil
-		}
+
+	if len(result) < 1 {
+		return nil, errors.New("can't find any resource with disk measurements, please create Atlas resources first and restart the exporter")
 	}
-	return nil, errors.New("can't find any resource with disk measurements, please create Atlas resources first and restart the exporter")
+	return result, nil
 }
 
-func (c *AtlasClient) getDiskMeasurementsForMetadata(host string, port int) (map[m.MeasurementID]*m.MeasurementMetadata, error) {
-	disks, err := c.listDisks(host, port)
+func (c *AtlasClient) getDiskMeasurementsForMetadata(host string, port int, partitionName string) (map[m.MeasurementID]*m.MeasurementMetadata, error) {
+	// At the moment of writing: 1 mongod disk expose 10 measurements
+	result := make(map[m.MeasurementID]*m.MeasurementMetadata, 10)
+	diskMeasurements, err := c.listProcessDiskMeasurements(host, port, partitionName)
 	if err != nil {
 		return nil, err
 	}
-	// At the moment of writing: 1 mongod disk expose 10 measurements
-	result := make(map[m.MeasurementID]*m.MeasurementMetadata, 10)
-	for _, disk := range disks {
-		diskName := disk.PartitionName
-		diskMeasurements, err := c.listProcessDiskMeasurements(host, port, diskName)
-		if err != nil {
-			return nil, err
+	for _, measurement := range diskMeasurements.Measurements {
+		metadata := &m.MeasurementMetadata{
+			Name:  measurement.Name,
+			Units: m.UnitEnum(measurement.Units),
 		}
-		for _, measurement := range diskMeasurements.Measurements {
-			metadata := &m.MeasurementMetadata{
-				Name:  measurement.Name,
-				Units: m.UnitEnum(measurement.Units),
-			}
-			result[metadata.ID()] = metadata
-		}
+		result[metadata.ID()] = metadata
 	}
+
 	return result, nil
 }
 

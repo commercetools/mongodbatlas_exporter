@@ -10,7 +10,7 @@ func (c *MockClient) GetDiskMeasurements(_ *measurer.Process, d *measurer.Disk) 
 	return nil
 }
 
-func (c *MockClient) GetDiskMeasurementsMetadata() (map[model.MeasurementID]*model.MeasurementMetadata, error) {
+func (c *MockClient) GetDiskMeasurementsMetadata(_ *measurer.Process, _ *measurer.Disk) (map[model.MeasurementID]*model.MeasurementMetadata, error) {
 	return map[model.MeasurementID]*model.MeasurementMetadata{
 		model.NewMeasurementID("DISK_PARTITION_IOPS_READ", "SCALAR_PER_SECOND"): {
 			Name:  "DISK_PARTITION_IOPS_READ",

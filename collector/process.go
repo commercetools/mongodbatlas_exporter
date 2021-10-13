@@ -36,17 +36,22 @@ func NewProcessCollector(logger log.Logger, client a.Client, p *mongodbatlas.Pro
 		return nil, httpErr
 	}
 
-	processMetadata.Disks = make([]*measurer.Disk, len(disks))
+	//MONGOS nodes have disks that do not report data so
+	//we skip registering them.
+	//https://github.com/commercetools/mongodbatlas_exporter/issues/15
+	if p.TypeName != a.TYPE_MONGOS {
+		processMetadata.Disks = make([]*measurer.Disk, len(disks))
+		for i := range disks {
+			processMetadata.Disks[i] = measurer.DiskFromMongodbAtlasProcessDisk(disks[i])
+			diskMetadata, err := client.GetDiskMeasurementsMetadata(processMetadata, processMetadata.Disks[i])
+			if err != nil {
+				//TODO: Definitely needs to be a metric
+				level.Warn(logger).Log("msg", "could not get disk metadata", "disk", disks[i].PartitionName, "process", p.ID, "group", p.GroupID)
+				continue
+			}
 
-	for i := range disks {
-		diskMetadata, err := client.GetDiskMeasurementsMetadata()
-		if err != nil {
-			//TODO: Definitely needs to be a metric
-			level.Warn(logger).Log("msg", "could not get disk metadata", "disk", disks[i].PartitionName, "process", p.ID, "group", p.GroupID)
-			continue
+			processMetadata.Disks[i].Metadata = diskMetadata
 		}
-		processMetadata.Disks[i] = measurer.DiskFromMongodbAtlasProcessDisk(disks[i])
-		processMetadata.Disks[i].Metadata = diskMetadata
 	}
 
 	//get the metadata for the measurer.
@@ -62,22 +67,27 @@ func NewProcessCollector(logger log.Logger, client a.Client, p *mongodbatlas.Pro
 		return nil, err
 	}
 
-	//here a set is used to add each measurement to the collector just once.
-	//each disk has the variable label: partition_name
-	everyDiskMetadataKey := make(map[model.MeasurementID]bool, len(processMetadata.Disks[0].Metadata))
-	for _, disk := range processMetadata.Disks {
-		for key := range disk.Metadata {
-			if _, ok := everyDiskMetadataKey[key]; !ok {
-				everyDiskMetadataKey[key] = true
-				metadata, ok := processMetadata.Metadata[key]
+	//MONGOS nodes have disks that do not report data so
+	//we skip registering them.
+	//https://github.com/commercetools/mongodbatlas_exporter/issues/15
+	if len(processMetadata.Disks) > 0 {
+		//here a set is used to add each measurement to the collector just once.
+		//each disk has the variable label: partition_name
+		everyDiskMetadataKey := make(map[model.MeasurementID]bool, len(processMetadata.Disks[0].Metadata))
+		for _, disk := range processMetadata.Disks {
+			for key := range disk.Metadata {
+				if _, ok := everyDiskMetadataKey[key]; !ok {
+					everyDiskMetadataKey[key] = true
+					metadata, ok := processMetadata.Metadata[key]
 
-				if ok {
-					metric, err := metadataToMetric(metadata, disksPrefix, disk.LabelNames(), processMetadata.PromConstLabels())
-					if err != nil {
-						level.Warn(logger).Log("msg", "could not transform metadata to metric", "err", err)
-						continue
+					if ok {
+						metric, err := metadataToMetric(metadata, disksPrefix, disk.LabelNames(), processMetadata.PromConstLabels())
+						if err != nil {
+							level.Warn(logger).Log("msg", "could not transform metadata to metric", "err", err)
+							continue
+						}
+						basicCollector.metrics = append(basicCollector.metrics, metric)
 					}
-					basicCollector.metrics = append(basicCollector.metrics, metric)
 				}
 			}
 		}
