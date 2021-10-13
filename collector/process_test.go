@@ -14,10 +14,6 @@ import (
 	"go.mongodb.org/atlas/mongodbatlas"
 )
 
-func (c *MockClient) GetProcessesMeasurements() ([]*measurer.Process, m.ScrapeFailures, error) {
-	return c.givenProcessesMeasurements, 3, nil
-}
-
 func (c *MockClient) GetProcessMeasurements(_ measurer.Process) (map[m.MeasurementID]*m.Measurement, error) {
 	return make(map[m.MeasurementID]*m.Measurement), nil
 }
@@ -27,19 +23,6 @@ func (c *MockClient) ListDisks(*mongodbatlas.Process) ([]*mongodbatlas.ProcessDi
 		StatusCode: 404,
 		Err:        errors.New("not found"),
 	}
-}
-
-func (c *MockClient) GetProcessesMeasurementsMetadata() (map[m.MeasurementID]*m.MeasurementMetadata, *a.HTTPError) {
-	return map[m.MeasurementID]*m.MeasurementMetadata{
-		m.NewMeasurementID("TICKETS_AVAILABLE_READS", "SCALAR"): {
-			Name:  "TICKETS_AVAILABLE_READS",
-			Units: "SCALAR",
-		},
-		m.NewMeasurementID("QUERY_EXECUTOR_SCANNED", "SCALAR_PER_SECOND"): {
-			Name:  "QUERY_EXECUTOR_SCANNED",
-			Units: "SCALAR_PER_SECOND",
-		},
-	}, nil
 }
 
 func (c *MockClient) GetProcessMeasurementsMetadata(p *measurer.Process) *a.HTTPError {

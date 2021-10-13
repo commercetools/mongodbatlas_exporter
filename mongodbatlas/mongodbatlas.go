@@ -5,7 +5,6 @@ import (
 	"errors"
 	"mongodbatlas_exporter/measurer"
 	m "mongodbatlas_exporter/model"
-	"strconv"
 	"strings"
 
 	"github.com/go-kit/kit/log"
@@ -34,10 +33,8 @@ type AtlasClient struct {
 // Client wraps mongodbatlas.Client
 type Client interface {
 	GetDiskMeasurements(*measurer.Process, *measurer.Disk) error
-	GetProcessesMeasurements() ([]*measurer.Process, m.ScrapeFailures, error)
 	GetProcessMeasurements(measurer.Process) (map[m.MeasurementID]*m.Measurement, error)
 	GetDiskMeasurementsMetadata(*measurer.Process, *measurer.Disk) (map[m.MeasurementID]*m.MeasurementMetadata, error)
-	GetProcessesMeasurementsMetadata() (map[m.MeasurementID]*m.MeasurementMetadata, *HTTPError)
 	GetProcessMeasurementsMetadata(*measurer.Process) *HTTPError
 	ListProcesses() ([]*mongodbatlas.Process, *HTTPError)
 	ListDisks(*mongodbatlas.Process) ([]*mongodbatlas.ProcessDisk, *HTTPError)
@@ -98,14 +95,6 @@ func (c *AtlasClient) ListDisks(p *mongodbatlas.Process) ([]*mongodbatlas.Proces
 	return disks.Results, nil
 }
 
-func (c *AtlasClient) listDisks(host string, port int) ([]*mongodbatlas.ProcessDisk, error) {
-	disks, _, err := c.mongodbatlasClient.ProcessDisks.List(context.Background(), c.projectID, host, port, nil)
-	if err != nil {
-		return nil, err
-	}
-	return disks.Results, nil
-}
-
 func (c *AtlasClient) listProcessDiskMeasurements(host string, port int, diskName string) (*mongodbatlas.ProcessDiskMeasurements, error) {
 	measurements, _, err := c.mongodbatlasClient.ProcessDiskMeasurements.List(context.Background(), c.projectID, host, port, diskName, opts)
 	if err != nil {
@@ -143,44 +132,6 @@ func (c *AtlasClient) GetDiskMeasurements(process *measurer.Process, disk *measu
 	}
 
 	return err
-}
-
-// GetProcessMeasurements returns measurements for all processes of a Project
-func (c *AtlasClient) GetProcessesMeasurements() ([]*measurer.Process, m.ScrapeFailures, error) {
-	scrapeFailures := m.ScrapeFailures(0)
-
-	processes, err := c.ListProcesses()
-	if err != nil {
-		return nil, 0, err
-	}
-
-	result := make([]*measurer.Process, 0, len(processes))
-	for _, process := range processes {
-		measurements, err := c.listProcessMeasurements(process.Hostname, process.Port)
-		if err != nil {
-			scrapeFailures++
-			level.Warn(c.logger).Log("msg", "failed to scrape measurements for the host, skipping", "host", process.Hostname, "port", process.Port, "err", err)
-			continue
-		}
-		processMeasurements := make(map[m.MeasurementID]*m.Measurement, len(measurements.Measurements))
-		for _, measurement := range measurements.Measurements {
-			measurementID := m.NewMeasurementID(measurement.Name, measurement.Units)
-			processMeasurements[measurementID] = &m.Measurement{
-				DataPoints: measurement.DataPoints,
-				Units:      m.UnitEnum(measurement.Units),
-			}
-		}
-		result = append(result, &measurer.Process{
-			Measurements: processMeasurements,
-			ProjectID:    process.GroupID,
-			RsName:       process.ReplicaSetName,
-			UserAlias:    process.UserAlias + ":" + strconv.Itoa(process.Port),
-			Version:      process.Version,
-			TypeName:     process.TypeName,
-		})
-	}
-
-	return result, scrapeFailures, err
 }
 
 // GetProcessMeasurements returns measurements for all processes of a Project
@@ -228,50 +179,6 @@ func (c *AtlasClient) getDiskMeasurementsForMetadata(host string, port int, part
 			Units: m.UnitEnum(measurement.Units),
 		}
 		result[metadata.ID()] = metadata
-	}
-
-	return result, nil
-}
-
-// GetProcessesMeasurementsMetadata returns name and unit of all available Process measurements
-func (c *AtlasClient) GetProcessesMeasurementsMetadata() (map[m.MeasurementID]*m.MeasurementMetadata, *HTTPError) {
-	processes, err := c.ListProcesses()
-	if err != nil {
-		return nil, err
-	}
-	// At the moment of writing: there are 5 mongod process types
-	// SHARD_MONGOS, REPLICA_SECONDARY, REPLICA_PRIMARY, SHARD_CONFIG_PRIMARY, SHARD_CONFIG_SECONDARY
-	processTypes := make(map[string]bool, 5)
-	// At the moment of writing: mongod process expose 96 measurements
-	// measurements for mognod process and mongos process measurements contain different amount of measurements,
-	// mongod contains all measurements that mongos provides and some more specific to mongod measurements
-	// (like `CACHE_*`,  `DB_*`, `DOCUMENT_*`, `GLOBAL_LOCK_CURRENT_QUEUE_*`, etc)
-	result := make(map[m.MeasurementID]*m.MeasurementMetadata, 96)
-
-	for _, process := range processes {
-		if _, ok := processTypes[process.TypeName]; ok {
-			continue
-		}
-		processMeasurements, err := c.listProcessMeasurements(process.Hostname, process.Port)
-		if err != nil {
-			continue
-		}
-		processTypes[process.TypeName] = true
-		if len(processMeasurements.Measurements) > 0 {
-			for _, measurement := range processMeasurements.Measurements {
-				metadata := &m.MeasurementMetadata{
-					Name:  measurement.Name,
-					Units: m.UnitEnum(measurement.Units),
-				}
-				result[metadata.ID()] = metadata
-			}
-		}
-	}
-
-	if len(result) < 1 {
-		return nil, &HTTPError{
-			Err: errors.New("can't find any resource with process measurements, please create Atlas resources first and restart the exporter"),
-		}
 	}
 
 	return result, nil
