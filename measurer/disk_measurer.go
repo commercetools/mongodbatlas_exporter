@@ -22,24 +22,15 @@ func (d *Disk) GetMetaData() map[model.MeasurementID]*model.MeasurementMetadata 
 	return d.Metadata
 }
 
-func (d *Disk) LabelValues() []string {
-	return []string{d.PartitionName}
-}
-
-func (d *Disk) LabelNames() []string {
-	return []string{"partition_name"}
-}
-
-func (d *Disk) PromLabels() prometheus.Labels {
+func (d *Disk) PromConstLabels() prometheus.Labels {
 	return prometheus.Labels{
 		"partition_name": d.PartitionName,
 	}
 }
 
-func (d *Disk) PromConstLabels() prometheus.Labels {
-	return d.PromLabels()
+func (d *Disk) PromVariableLabelNames() []string {
+	return []string{"partition_name"}
 }
-
 func (d *Disk) PromVariableLabelValues() []string {
 	return []string{d.PartitionName}
 }

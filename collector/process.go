@@ -81,7 +81,7 @@ func NewProcessCollector(logger log.Logger, client a.Client, p *mongodbatlas.Pro
 					metadata, ok := processMetadata.Metadata[key]
 
 					if ok {
-						metric, err := metadataToMetric(metadata, disksPrefix, disk.LabelNames(), processMetadata.PromConstLabels())
+						metric, err := metadataToMetric(metadata, disksPrefix, disk.PromVariableLabelNames(), processMetadata.PromConstLabels())
 						if err != nil {
 							level.Warn(logger).Log("msg", "could not transform metadata to metric", "err", err)
 							continue
@@ -151,7 +151,7 @@ func (c *Process) Collect(ch chan<- prometheus.Metric) {
 		}
 		c.up.Set(1)
 		for _, metadata := range disk.Metadata {
-			metric, err := metadataToMetric(metadata, disksPrefix, disk.LabelNames(), c.measurer.PromConstLabels())
+			metric, err := metadataToMetric(metadata, disksPrefix, disk.PromVariableLabelNames(), c.measurer.PromConstLabels())
 			if err != nil {
 				level.Debug(c.logger).Log("msg", "could not convert disk metadata to metric", "err", err)
 			}

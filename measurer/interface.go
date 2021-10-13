@@ -13,15 +13,11 @@ type Measurer interface {
 	GetMeasurements() map[model.MeasurementID]*model.Measurement
 	//Getter for the measurement metadata map
 	GetMetaData() map[model.MeasurementID]*model.MeasurementMetadata
-	//Returns slice of prometheus label values such as the real project_id or rs_name value.
-	LabelValues() []string
-	//Returns slice of prometheus label names so that collectors can register necessary
+	//Returns slice of prometheus variable label values such as a disks partition name.
+	PromVariableLabelValues() []string
+	//Returns slice of variable prometheus label names so that collectors can register necessary
 	//labels during describe.
-	LabelNames() []string
-	//Returns a map of prometheus.Labels, mostly useful with CounterVec.With to
-	//select a particular counter to manipulate.
-	PromLabels() prometheus.Labels
+	PromVariableLabelNames() []string
 	//Returns a map of prometheus.Labels used where constant labels should be used.
 	PromConstLabels() prometheus.Labels
-	PromVariableLabelValues() []string
 }

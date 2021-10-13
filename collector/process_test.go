@@ -111,11 +111,11 @@ func getExpectedProcessesMetrics(value float64) []prometheus.Metric {
 		prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, processesPrefix, "query_executor_scanned_ratio"),
 			"Original measurements.name: 'QUERY_EXECUTOR_SCANNED'. "+defaultHelp,
-			processMeasurements.LabelNames(),
+			processMeasurements.PromVariableLabelNames(),
 			nil),
 		prometheus.GaugeValue,
 		value,
-		processMeasurements.LabelValues()...)
+		processMeasurements.PromVariableLabelValues()...)
 	processUp := prometheus.MustNewConstMetric(
 		prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, processesPrefix, "up"),
@@ -144,20 +144,20 @@ func getExpectedProcessesMetrics(value float64) []prometheus.Metric {
 		prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, processesPrefix, "measurement_transformation_failures_total"),
 			measurementTransformationFailuresHelp,
-			append((&measurer.Process{}).LabelNames(), "atlas_metric", "error"),
+			append((&measurer.Process{}).PromVariableLabelNames(), "atlas_metric", "error"),
 			nil),
 		prometheus.CounterValue,
 		1,
-		append(processMeasurements.LabelValues(), "TICKETS_AVAILABLE_READS", "no_data")...,
+		append(processMeasurements.PromVariableLabelValues(), "TICKETS_AVAILABLE_READS", "no_data")...,
 	)
 	processInfo := prometheus.MustNewConstMetric(
 		prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, processesPrefix, "info"),
 			infoHelp,
-			processMeasurements.AllLabelNames(),
-			nil),
+			processMeasurements.PromVariableLabelNames(),
+			processMeasurements.PromConstLabels()),
 		prometheus.GaugeValue,
 		1,
-		processMeasurements.AllLabelValues()...)
+		processMeasurements.PromVariableLabelValues()...)
 	return []prometheus.Metric{processQueryExecutorScanned, processUp, totalScrapes, scrapeFailures, processInfo, measurementTransformationFailures}
 }
