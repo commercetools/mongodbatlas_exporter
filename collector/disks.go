@@ -23,7 +23,11 @@ func NewDisks(logger log.Logger, client a.Client) (*Disks, error) {
 		return nil, err
 	}
 
-	basicCollector, err := newBasicCollector(logger, client, measurementsMetadata, &measurer.Disk{}, disksPrefix)
+	diskMeasurer := measurer.Disk{}
+
+	diskMeasurer.Metadata = measurementsMetadata
+
+	basicCollector, err := newBasicCollector(logger, client, &diskMeasurer, disksPrefix)
 	if err != nil {
 		return nil, err
 	}

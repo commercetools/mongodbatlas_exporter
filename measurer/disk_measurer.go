@@ -9,16 +9,21 @@ import (
 
 // DiskMeasurements contains all measurements of one Disk
 type Disk struct {
-	Measurements                                map[model.MeasurementID]*model.Measurement
-	ProjectID, RsName, UserAlias, PartitionName string
+	Measurements  map[model.MeasurementID]*model.Measurement
+	Metadata      map[model.MeasurementID]*model.MeasurementMetadata
+	PartitionName string
 }
 
 func (d *Disk) GetMeasurements() map[model.MeasurementID]*model.Measurement {
 	return d.Measurements
 }
 
+func (d *Disk) GetMetaData() map[model.MeasurementID]*model.MeasurementMetadata {
+	return d.Metadata
+}
+
 func (d *Disk) LabelValues() []string {
-	return []string{d.ProjectID, d.RsName, d.UserAlias, d.PartitionName}
+	return []string{d.PartitionName}
 }
 
 func (d *Disk) LabelNames() []string {
@@ -27,9 +32,6 @@ func (d *Disk) LabelNames() []string {
 
 func (d *Disk) PromLabels() prometheus.Labels {
 	return prometheus.Labels{
-		"project_id":     d.ProjectID,
-		"rs_name":        d.RsName,
-		"user_alias":     d.UserAlias,
 		"partition_name": d.PartitionName,
 	}
 }
@@ -38,11 +40,8 @@ func (d *Disk) PromConstLabels() prometheus.Labels {
 	return d.PromLabels()
 }
 
-func DiskFromMongodbAtlasProcess(p *mongodbatlas.Process, partitionName string) *Disk {
+func DiskFromMongodbAtlasProcessDisk(p *mongodbatlas.ProcessDisk) *Disk {
 	return &Disk{
-		ProjectID:     p.GroupID,
-		RsName:        p.ReplicaSetName,
-		UserAlias:     p.UserAlias,
-		PartitionName: partitionName,
+		PartitionName: p.PartitionName,
 	}
 }

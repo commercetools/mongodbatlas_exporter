@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"errors"
 	"mongodbatlas_exporter/measurer"
 	m "mongodbatlas_exporter/model"
 	a "mongodbatlas_exporter/mongodbatlas"
@@ -21,6 +22,13 @@ func (c *MockClient) GetProcessMeasurements(_ measurer.Process) (map[m.Measureme
 	return make(map[m.MeasurementID]*m.Measurement), nil
 }
 
+func (c *MockClient) ListDisks(*mongodbatlas.Process) ([]*mongodbatlas.ProcessDisk, *a.HTTPError) {
+	return nil, &a.HTTPError{
+		StatusCode: 404,
+		Err:        errors.New("not found"),
+	}
+}
+
 func (c *MockClient) GetProcessesMeasurementsMetadata() (map[m.MeasurementID]*m.MeasurementMetadata, *a.HTTPError) {
 	return map[m.MeasurementID]*m.MeasurementMetadata{
 		m.NewMeasurementID("TICKETS_AVAILABLE_READS", "SCALAR"): {
@@ -34,8 +42,8 @@ func (c *MockClient) GetProcessesMeasurementsMetadata() (map[m.MeasurementID]*m.
 	}, nil
 }
 
-func (c *MockClient) GetProcessMeasurementsMetadata(_ *mongodbatlas.Process) (map[m.MeasurementID]*m.MeasurementMetadata, *a.HTTPError) {
-	return map[m.MeasurementID]*m.MeasurementMetadata{
+func (c *MockClient) GetProcessMeasurementsMetadata(p *measurer.Process) *a.HTTPError {
+	p.Metadata = map[m.MeasurementID]*m.MeasurementMetadata{
 		m.NewMeasurementID("TICKETS_AVAILABLE_READS", "SCALAR"): {
 			Name:  "TICKETS_AVAILABLE_READS",
 			Units: "SCALAR",
@@ -44,7 +52,8 @@ func (c *MockClient) GetProcessMeasurementsMetadata(_ *mongodbatlas.Process) (ma
 			Name:  "QUERY_EXECUTOR_SCANNED",
 			Units: "SCALAR_PER_SECOND",
 		},
-	}, nil
+	}
+	return nil
 }
 
 func (c *MockClient) ListProcesses() ([]*mongodbatlas.Process, *a.HTTPError) {

@@ -24,13 +24,30 @@ type Process struct {
 }
 
 func NewProcessCollector(logger log.Logger, client a.Client, p *mongodbatlas.Process) (*Process, error) {
-	metadata, httpErr := client.GetProcessMeasurementsMetadata(p)
+
+	processMetadata := measurer.ProcessFromMongodbAtlasProcess(p)
+
+	//Spice the Measurer with the list of disks.
+	disks, httpErr := client.ListDisks(p)
+
 	if httpErr != nil {
 		return nil, httpErr
 	}
-	processMetadata := measurer.ProcessFromMongodbAtlasProcess(p)
 
-	basicCollector, err := newBasicCollector(logger, client, metadata, processMetadata, processesPrefix)
+	processMetadata.Disks = make([]*measurer.Disk, len(disks))
+
+	for i := range disks {
+		processMetadata.Disks[i] = measurer.DiskFromMongodbAtlasProcessDisk(disks[i])
+	}
+
+	//get the metadata for the measurer.
+	//this should be part of the measurer.
+	httpErr = client.GetProcessMeasurementsMetadata(processMetadata)
+	if httpErr != nil {
+		return nil, httpErr
+	}
+
+	basicCollector, err := newBasicCollector(logger, client, processMetadata, processesPrefix)
 
 	if err != nil {
 		return nil, err

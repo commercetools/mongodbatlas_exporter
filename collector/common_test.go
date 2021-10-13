@@ -43,7 +43,11 @@ func TestDesc(t *testing.T) {
 	mock := &MockClient{}
 	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
 
-	collector, err := newBasicCollector(logger, mock, getGivenMeasurementMetadata(), &measurer.Disk{}, testPrefix)
+	diskMeasurer := measurer.Disk{
+		Metadata: getGivenMeasurementMetadata(),
+	}
+
+	collector, err := newBasicCollector(logger, mock, &diskMeasurer, testPrefix)
 	assert.NotNil(collector)
 	assert.NoError(err)
 	descCh := make(chan *prometheus.Desc, 99)

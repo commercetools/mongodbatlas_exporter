@@ -34,8 +34,9 @@ type Client interface {
 	GetProcessMeasurements(measurer.Process) (map[m.MeasurementID]*m.Measurement, error)
 	GetDiskMeasurementsMetadata() (map[m.MeasurementID]*m.MeasurementMetadata, error)
 	GetProcessesMeasurementsMetadata() (map[m.MeasurementID]*m.MeasurementMetadata, *HTTPError)
-	GetProcessMeasurementsMetadata(process *mongodbatlas.Process) (map[m.MeasurementID]*m.MeasurementMetadata, *HTTPError)
+	GetProcessMeasurementsMetadata(*measurer.Process) *HTTPError
 	ListProcesses() ([]*mongodbatlas.Process, *HTTPError)
+	ListDisks(*mongodbatlas.Process) ([]*mongodbatlas.ProcessDisk, *HTTPError)
 }
 
 // NewClient returns wrapper around mongodbatlas.Client, which implements necessary functionality
@@ -79,6 +80,18 @@ func (c *AtlasClient) ListProcesses() ([]*mongodbatlas.Process, *HTTPError) {
 		}
 	}
 	return filteredProceses, nil
+}
+
+func (c *AtlasClient) ListDisks(p *mongodbatlas.Process) ([]*mongodbatlas.ProcessDisk, *HTTPError) {
+	disks, r, err := c.mongodbatlasClient.ProcessDisks.List(context.Background(), c.projectID, p.Hostname, p.Port, nil)
+
+	if err != nil {
+		return nil, &HTTPError{
+			StatusCode: r.StatusCode,
+			Err:        err,
+		}
+	}
+	return disks.Results, nil
 }
 
 func (c *AtlasClient) listDisks(host string, port int) ([]*mongodbatlas.ProcessDisk, error) {
@@ -141,9 +154,6 @@ func (c *AtlasClient) GetDiskMeasurements() ([]*measurer.Disk, m.ScrapeFailures,
 			}
 			result = append(result, &measurer.Disk{
 				Measurements:  diskMeasurements,
-				ProjectID:     process.GroupID,
-				RsName:        process.ReplicaSetName,
-				UserAlias:     process.UserAlias + ":" + strconv.Itoa(process.Port),
 				PartitionName: disk.PartitionName,
 			})
 		}
@@ -295,16 +305,16 @@ func (c *AtlasClient) GetProcessesMeasurementsMetadata() (map[m.MeasurementID]*m
 }
 
 // GetProcessMeasurementsMetadata returns name and unit of all available Process measurements
-func (c *AtlasClient) GetProcessMeasurementsMetadata(process *mongodbatlas.Process) (map[m.MeasurementID]*m.MeasurementMetadata, *HTTPError) {
+func (c *AtlasClient) GetProcessMeasurementsMetadata(pMeasurer *measurer.Process) *HTTPError {
 	// At the moment of writing: mongod process expose 96 measurements
 	// measurements for mognod process and mongos process measurements contain different amount of measurements,
 	// mongod contains all measurements that mongos provides and some more specific to mongod measurements
 	// (like `CACHE_*`,  `DB_*`, `DOCUMENT_*`, `GLOBAL_LOCK_CURRENT_QUEUE_*`, etc)
-	result := make(map[m.MeasurementID]*m.MeasurementMetadata, 96)
+	pMeasurer.Metadata = make(map[m.MeasurementID]*m.MeasurementMetadata, 96)
 
-	processMeasurements, err := c.listProcessMeasurements(process.Hostname, process.Port)
+	processMeasurements, err := c.listProcessMeasurements(pMeasurer.Hostname, pMeasurer.Port)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if len(processMeasurements.Measurements) > 0 {
@@ -313,15 +323,15 @@ func (c *AtlasClient) GetProcessMeasurementsMetadata(process *mongodbatlas.Proce
 				Name:  measurement.Name,
 				Units: m.UnitEnum(measurement.Units),
 			}
-			result[metadata.ID()] = metadata
+			pMeasurer.Metadata[metadata.ID()] = metadata
 		}
 	}
 
-	if len(result) < 1 {
-		return nil, &HTTPError{
+	if len(pMeasurer.Metadata) < 1 {
+		return &HTTPError{
 			Err: errors.New("can't find any resource with process measurements, please create Atlas resources first and restart the exporter"),
 		}
 	}
 
-	return result, nil
+	return nil
 }

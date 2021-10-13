@@ -9,9 +9,15 @@ import (
 
 // Process contains all measurements of one Process
 type Process struct {
+	Metadata                                                      map[model.MeasurementID]*model.MeasurementMetadata
 	Measurements                                                  map[model.MeasurementID]*model.Measurement
+	Disks                                                         []*Disk
 	ProjectID, RsName, UserAlias, Version, TypeName, Hostname, ID string
 	Port                                                          int
+}
+
+func (p *Process) GetMetaData() map[model.MeasurementID]*model.MeasurementMetadata {
+	return p.Metadata
 }
 
 func (p *Process) GetMeasurements() map[model.MeasurementID]*model.Measurement {

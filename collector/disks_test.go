@@ -64,9 +64,6 @@ func TestDisksCollector(t *testing.T) {
 func getGivenMeasurements(value1 *float32) []*measurer.Disk {
 	return []*measurer.Disk{
 		{
-			ProjectID:     "testProjectID",
-			RsName:        "testReplicaSet",
-			UserAlias:     "cluster-host:27017",
 			PartitionName: "testPartition",
 			Measurements: map[model.MeasurementID]*model.Measurement{
 				"DISK_PARTITION_IOPS_READ_SCALAR_PER_SECOND": {
@@ -93,9 +90,6 @@ func getGivenMeasurements(value1 *float32) []*measurer.Disk {
 
 func getExpectedDisksMetrics(value float64) []prometheus.Metric {
 	measurer := measurer.Disk{
-		ProjectID:     "testProjectID",
-		RsName:        "testReplicaSet",
-		UserAlias:     "cluster-host:27017",
 		PartitionName: "testPartition",
 	}
 	fqNames := []string{
