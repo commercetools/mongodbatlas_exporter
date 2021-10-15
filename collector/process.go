@@ -138,6 +138,12 @@ func (c *Process) Collect(ch chan<- prometheus.Metric) {
 	ch <- c.info
 
 	for _, disk := range c.measurer.Disks {
+		err := c.client.GetDiskMeasurements(&c.measurer, disk)
+
+		if err != nil {
+			level.Debug(c.logger).Log("msg", "skipping disk", "disk", disk.PartitionName, "host", disk.ID,
+				"err", err)
+		}
 		for _, metric := range disk.PromMetrics() {
 			err = c.report(disk, metric, ch)
 			if err != nil {
