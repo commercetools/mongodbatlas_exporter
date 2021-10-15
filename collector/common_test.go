@@ -4,6 +4,7 @@ import (
 	"mongodbatlas_exporter/measurer"
 	"mongodbatlas_exporter/model"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/go-kit/kit/log"
@@ -28,6 +29,28 @@ func convertMetrics(metrics []prometheus.Metric) map[string]string {
 		dtoMetric := dto.Metric{}
 		metric.Write(&dtoMetric)
 		result[desc] = dtoMetric.String()
+	}
+	return result
+}
+
+//converts descs into a map of the [fqname]map[constLabels]bool
+func convertDescs(descs []*prometheus.Desc) map[string]map[string]string {
+	result := make(map[string]map[string]string, len(descs))
+	for i := range descs {
+		value := reflect.ValueOf(descs[i])
+		fqName := value.FieldByName("fqname").String()
+		constLabels := value.FieldByName("constLabelPairs").Interface().([]*dto.LabelPair)
+
+		// for an fqName
+		if labels, ok := result[fqName]; !ok {
+			//iterate over each constLabel pair
+			for _, pair := range constLabels {
+				//if the name does not exist add the label to the fqName -> map[label]value map.
+				if _, iok := labels[*pair.Name]; !iok {
+					labels[*pair.Name] = *pair.Value
+				}
+			}
+		}
 	}
 	return result
 }
@@ -62,11 +85,16 @@ func TestDesc(t *testing.T) {
 	for len(descCh) > 0 {
 		resultingDescs = append(resultingDescs, <-descCh)
 	}
-	expectedDescs := getExpectedDescs()
-	assert.Equal(len(expectedDescs), len(resultingDescs))
-	//Since all fields are private this gives the most actionable info.
-	//Can be difficult to read/understand output.
-	assert.ElementsMatch(expectedDescs, resultingDescs)
+	expectedDescsMap := convertDescs(getExpectedDescs())
+	resultingDescsMap := convertDescs(resultingDescs)
+
+	for fqname, expectedLabels := range expectedDescsMap {
+		if actualLabels, ok := resultingDescsMap[fqname]; ok {
+			assert.ElementsMatch(expectedLabels, actualLabels)
+		}
+	}
+
+	assert.Equal(len(expectedDescsMap), len(resultingDescsMap))
 }
 
 //getExpectedDescs is a mocking function to return the expected list of descriptions for a basic collector.
