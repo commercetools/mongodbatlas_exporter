@@ -12,9 +12,11 @@ const (
 	DEFAULT_HELP = "Please see MongoDB Atlas documentation for details about the measurement"
 )
 
+//Base helps collect most functionality for uniquely identifying resources.
 type Base struct {
-	Measurements                                         map[model.MeasurementID]*model.Measurement
-	Metadata                                             map[model.MeasurementID]*model.MeasurementMetadata
+	Measurements map[model.MeasurementID]*model.Measurement
+	Metadata     map[model.MeasurementID]*model.MeasurementMetadata
+	//These fields help uniquely identify processes and disks.
 	ProjectID, RsName, UserAlias, TypeName, Hostname, ID string
 	promMetrics                                          []*PromMetric
 }
