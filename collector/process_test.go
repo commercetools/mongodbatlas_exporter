@@ -71,28 +71,30 @@ func TestProcessesCollector(t *testing.T) {
 func getGivenProcessesMeasurements(value1 *float32) []*measurer.Process {
 	return []*measurer.Process{
 		{
-			ProjectID: "testProjectID",
-			RsName:    "testReplicaSet",
-			UserAlias: "cluster-host:27017",
-			Version:   "4.2.13",
-			TypeName:  "REPLICA_PRIMARY",
-			Measurements: map[m.MeasurementID]*m.Measurement{
-				"QUERY_EXECUTOR_SCANNED_SCALAR_PER_SECOND": {
-					DataPoints: []*mongodbatlas.DataPoints{
-						{
-							Timestamp: "2021-03-07T15:46:13Z",
-							Value:     nil,
+			Version: "4.2.13",
+			Base: measurer.Base{
+				ProjectID: "testProjectID",
+				RsName:    "testReplicaSet",
+				UserAlias: "cluster-host:27017",
+				TypeName:  "REPLICA_PRIMARY",
+				Measurements: map[m.MeasurementID]*m.Measurement{
+					"QUERY_EXECUTOR_SCANNED_SCALAR_PER_SECOND": {
+						DataPoints: []*mongodbatlas.DataPoints{
+							{
+								Timestamp: "2021-03-07T15:46:13Z",
+								Value:     nil,
+							},
+							{
+								Timestamp: "2021-03-07T15:47:13Z",
+								Value:     value1,
+							},
 						},
-						{
-							Timestamp: "2021-03-07T15:47:13Z",
-							Value:     value1,
-						},
+						Units: m.SCALAR_PER_SECOND,
 					},
-					Units: m.SCALAR_PER_SECOND,
-				},
-				"TICKETS_AVAILABLE_READS_SCALAR": {
-					DataPoints: []*mongodbatlas.DataPoints{},
-					Units:      m.SCALAR,
+					"TICKETS_AVAILABLE_READS_SCALAR": {
+						DataPoints: []*mongodbatlas.DataPoints{},
+						Units:      m.SCALAR,
+					},
 				},
 			},
 		},
@@ -101,16 +103,18 @@ func getGivenProcessesMeasurements(value1 *float32) []*measurer.Process {
 
 func getExpectedProcessesMetrics(value float64) []prometheus.Metric {
 	processMeasurements := measurer.Process{
-		ProjectID: "testProjectID",
-		RsName:    "testReplicaSet",
-		UserAlias: "cluster-host:27017",
-		Version:   "4.2.13",
-		TypeName:  "REPLICA_PRIMARY",
+		Base: measurer.Base{
+			ProjectID: "testProjectID",
+			RsName:    "testReplicaSet",
+			UserAlias: "cluster-host:27017",
+			TypeName:  "REPLICA_PRIMARY",
+		},
+		Version: "4.2.13",
 	}
 	processQueryExecutorScanned := prometheus.MustNewConstMetric(
 		prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, processesPrefix, "query_executor_scanned_ratio"),
-			"Original measurements.name: 'QUERY_EXECUTOR_SCANNED'. "+defaultHelp,
+			"Original measurements.name: 'QUERY_EXECUTOR_SCANNED'. "+measurer.DEFAULT_HELP,
 			processMeasurements.PromVariableLabelNames(),
 			nil),
 		prometheus.GaugeValue,

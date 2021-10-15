@@ -13,7 +13,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const testPrefix = "stats"
+const (
+	testPrefix = "stats"
+)
 
 type MockClient struct {
 	givenDisksMeasurements     map[model.MeasurementID]*model.Measurement
@@ -45,7 +47,9 @@ func TestDesc(t *testing.T) {
 	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
 
 	diskMeasurer := measurer.Disk{
-		Metadata: getGivenMeasurementMetadata(),
+		Base: measurer.Base{
+			Metadata: getGivenMeasurementMetadata(),
+		},
 	}
 
 	collector, err := newBasicCollector(logger, mock, &diskMeasurer, testPrefix)
@@ -79,7 +83,7 @@ func getExpectedDescs() []*prometheus.Desc {
 		upHelp,
 		totalScrapesHelp,
 		scrapeFailuresHelp,
-		"Original measurements.name: 'DISK_PARTITION_IOPS_READ'. " + defaultHelp,
+		"Original measurements.name: 'DISK_PARTITION_IOPS_READ'. " + measurer.DEFAULT_HELP,
 	}
 
 	result := make([]*prometheus.Desc, len(fqNames))

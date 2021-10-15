@@ -1,42 +1,32 @@
 package measurer
 
 import (
-	"mongodbatlas_exporter/model"
-
 	"github.com/prometheus/client_golang/prometheus"
 	"go.mongodb.org/atlas/mongodbatlas"
 )
 
 // DiskMeasurements contains all measurements of one Disk
 type Disk struct {
-	Measurements  map[model.MeasurementID]*model.Measurement
-	Metadata      map[model.MeasurementID]*model.MeasurementMetadata
+	Base
 	PartitionName string
 }
 
-func (d *Disk) GetMeasurements() map[model.MeasurementID]*model.Measurement {
-	return d.Measurements
-}
-
-func (d *Disk) GetMetaData() map[model.MeasurementID]*model.MeasurementMetadata {
-	return d.Metadata
-}
-
 func (d *Disk) PromConstLabels() prometheus.Labels {
-	return prometheus.Labels{
-		"partition_name": d.PartitionName,
-	}
+	labels := d.Base.PromConstLabels()
+	labels["paritition_name"] = d.PartitionName
+	return labels
 }
 
-func (d *Disk) PromVariableLabelNames() []string {
-	return []string{"partition_name"}
-}
-func (d *Disk) PromVariableLabelValues() []string {
-	return []string{d.PartitionName}
-}
-
-func DiskFromMongodbAtlasProcessDisk(p *mongodbatlas.ProcessDisk) *Disk {
+func DiskFromMongodbAtlasProcessDisk(p *mongodbatlas.Process, d *mongodbatlas.ProcessDisk) *Disk {
 	return &Disk{
-		PartitionName: p.PartitionName,
+		Base: Base{
+			ProjectID: p.GroupID,
+			RsName:    p.ReplicaSetName,
+			UserAlias: p.UserAlias,
+			TypeName:  p.TypeName,
+			Hostname:  p.Hostname,
+			ID:        p.ID,
+		},
+		PartitionName: d.PartitionName,
 	}
 }
