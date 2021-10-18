@@ -72,6 +72,13 @@ func (c *basicCollector) Describe(ch chan<- *prometheus.Desc) {
 	}
 }
 
+//The basic collector's collect function does nothing at the moment
+//but must be declared so that basicCollector fulfills the prometheus.Collector
+//interface
+func (c *basicCollector) Collect(ch chan<- prometheus.Metric) {
+
+}
+
 //report may make more sense being renamed Collect since it is really the parent method
 //for Collect on any sub-type of basicCollecor.
 //Any Measurer and metric can use this common report function to send metrics to prometheus.

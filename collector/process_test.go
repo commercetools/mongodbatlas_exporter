@@ -17,7 +17,9 @@ func (c *MockClient) ListProcesses() ([]*mongodbatlas.Process, *a.HTTPError) {
 	return nil, nil
 }
 
+//Include the descriptions from the basic collector.
 var processExpectedDescs = append(commontestExpectedDescs,
+	//Process Specific Metric Descriptions
 	[]string{prometheus.BuildFQName(namespace, processesPrefix, "info"), infoHelp},
 	[]string{prometheus.BuildFQName(namespace, processesPrefix, "query_executor_scanned_ratio"), "Original measurements.name: 'QUERY_EXECUTOR_SCANNED'. " + measurer.DEFAULT_HELP},
 	//This disk metric should be attached to the sub-resource for disks on the process measurer
@@ -28,7 +30,18 @@ var processExpectedDescs = append(commontestExpectedDescs,
 //metrics _and_ the disk metrics. The basic collector would not handle
 //the disk describes.
 func TestProcessDescribe(t *testing.T) {
+	process := mongodbatlas.Process{}
+	mock := &MockClient{}
+	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
 
+	processMeasurer := measurer.ProcessFromMongodbAtlasProcess(&process)
+
+	processCollector, err := NewProcessCollector(logger, mock, &process)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, processCollector)
+
+	testDescribe(t, processCollector, processMeasurer, processExpectedDescs)
 }
 
 func TestProcessesCollector(t *testing.T) {
