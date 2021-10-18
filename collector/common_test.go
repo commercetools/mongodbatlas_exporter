@@ -34,21 +34,27 @@ func convertMetrics(metrics []prometheus.Metric) map[string]string {
 }
 
 //converts descs into a map of the [fqname]map[constLabels]bool
-func convertDescs(descs []*prometheus.Desc) map[string]map[string]string {
+func descsToLabelMaps(descs []*prometheus.Desc) map[string]map[string]string {
 	result := make(map[string]map[string]string, len(descs))
 	for i := range descs {
-		value := reflect.ValueOf(descs[i])
-		fqName := value.FieldByName("fqname").String()
-		constLabels := value.FieldByName("constLabelPairs").Interface().([]*dto.LabelPair)
+		value := reflect.ValueOf(*descs[i])
+		fqName := value.FieldByName("fqName").String()
+		//[]*dto.LabelPair
+		constLabelPairs := value.FieldByName("constLabelPairs")
+
+		if !constLabelPairs.IsValid() {
+			return result
+		}
 
 		// for an fqName
-		if labels, ok := result[fqName]; !ok {
-			//iterate over each constLabel pair
-			for _, pair := range constLabels {
-				//if the name does not exist add the label to the fqName -> map[label]value map.
-				if _, iok := labels[*pair.Name]; !iok {
-					labels[*pair.Name] = *pair.Value
-				}
+		if _, ok := result[fqName]; !ok {
+			result[fqName] = make(map[string]string, constLabelPairs.Len())
+			for i := 0; i < constLabelPairs.Len(); i++ {
+				//iterate over each constLabel pair
+				//*dto.LabelPair
+				name := constLabelPairs.Index(i).Elem().FieldByName("Name").Elem().String()
+				value := constLabelPairs.Index(i).Elem().FieldByName("Value").Elem().String()
+				result[fqName][name] = value
 			}
 		}
 	}
@@ -85,12 +91,19 @@ func TestDesc(t *testing.T) {
 	for len(descCh) > 0 {
 		resultingDescs = append(resultingDescs, <-descCh)
 	}
-	expectedDescsMap := convertDescs(getExpectedDescs())
-	resultingDescsMap := convertDescs(resultingDescs)
+	expectedDescsMap := descsToLabelMaps(getExpectedDescs())
+	resultingDescsMap := descsToLabelMaps(resultingDescs)
 
+	//for each (fqname, labels)
 	for fqname, expectedLabels := range expectedDescsMap {
+		//check that the resultingDesc had those labels
 		if actualLabels, ok := resultingDescsMap[fqname]; ok {
-			assert.ElementsMatch(expectedLabels, actualLabels)
+			for label := range expectedLabels {
+				//assert that the FQNAME has the same labels and values.
+				assert.Equal(expectedLabels[label], actualLabels[label])
+			}
+		} else {
+			t.Fatalf("actual missing fqname %s", fqname)
 		}
 	}
 
