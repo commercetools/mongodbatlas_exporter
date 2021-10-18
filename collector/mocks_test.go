@@ -1,7 +1,6 @@
 package collector
 
 import (
-	"errors"
 	"mongodbatlas_exporter/measurer"
 	"mongodbatlas_exporter/model"
 	m "mongodbatlas_exporter/model"
@@ -42,10 +41,9 @@ func (c *MockClient) GetProcessMeasurements(_ measurer.Process) (map[m.Measureme
 }
 
 func (c *MockClient) ListDisks(*mongodbatlas.Process) ([]*mongodbatlas.ProcessDisk, *a.HTTPError) {
-	return nil, &a.HTTPError{
-		StatusCode: 404,
-		Err:        errors.New("not found"),
-	}
+	return []*mongodbatlas.ProcessDisk{
+		{PartitionName: "data"},
+	}, nil
 }
 
 func (c *MockClient) GetProcessMeasurementsMetadata(p *measurer.Process) *a.HTTPError {

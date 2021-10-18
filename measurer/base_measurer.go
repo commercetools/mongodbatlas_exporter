@@ -58,18 +58,20 @@ func (b *Base) PromConstLabels() prometheus.Labels {
 	}
 }
 
-//buildPromMetrics returns a function that allows Process and Disk measurers to inject their specific labels
-//and finally the collector to inject its namespace and prefix.
-func (b *Base) BuildPromMetrics(namespace, collectorPrefix string) error {
-	b.promMetrics = make([]*PromMetric, len(b.Metadata))
+//BuildPromMetrics builds the prometheus metrics fro a measurer.
+//It works better without a caller so that the PromVariableLabelNames and PromConstLabels are
+//correctly tied to the measurer. Otherwise this function would need to be redeclared exactly
+//for each measurer.
+func BuildPromMetrics(m Measurer, namespace, collectorPrefix string) error {
+	promMetrics := make([]*PromMetric, len(m.GetMetaData()))
 
 	i := 0
-	for _, metadata := range b.Metadata {
-		metric, err := metadataToMetric(metadata, namespace, collectorPrefix, DEFAULT_HELP, b.PromVariableLabelNames(), b.PromConstLabels())
+	for _, metadata := range m.GetMetaData() {
+		metric, err := metadataToMetric(metadata, namespace, collectorPrefix, DEFAULT_HELP, m.PromVariableLabelNames(), m.PromConstLabels())
 		if err != nil {
 			return err
 		}
-		b.promMetrics[i] = metric
+		promMetrics[i] = metric
 		i++
 	}
 	return nil

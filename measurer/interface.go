@@ -45,6 +45,5 @@ type Measurer interface {
 	PromVariableLabelNames() []string
 	//Returns a map of prometheus.Labels used where constant labels should be used.
 	PromConstLabels() prometheus.Labels
-	BuildPromMetrics(namespace, collectorPrefix string) error
 	PromMetrics() []*PromMetric
 }

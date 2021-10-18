@@ -106,13 +106,13 @@ func TestDescribe(t *testing.T) {
 	assert.NotNil(collector)
 	assert.NoError(err)
 
-	testDescribe(t, collector, &processMeasurer, commontestExpectedDescs)
+	testDescribe(t, collector, getExpectedDescs(&processMeasurer, commontestExpectedDescs))
 }
 
 //testDescribe is a common method for testing the descriptions returned by an exporter.
 //expectedDescs are usually declared at the top of a file, but may be declared within a test
 //function itself.
-func testDescribe(t *testing.T, collector prometheus.Collector, measurer measurer.Measurer, expectedDescs [][]string) {
+func testDescribe(t *testing.T, collector prometheus.Collector, expectedDescs []*prometheus.Desc) {
 	descCh := make(chan *prometheus.Desc, 99)
 	defer close(descCh)
 	collector.Describe(descCh)
@@ -122,7 +122,7 @@ func testDescribe(t *testing.T, collector prometheus.Collector, measurer measure
 		resultingDescs = append(resultingDescs, <-descCh)
 	}
 
-	expectedDescsMap := descsToLabelMaps(getExpectedDescs(measurer, expectedDescs))
+	expectedDescsMap := descsToLabelMaps(expectedDescs)
 	resultingDescsMap := descsToLabelMaps(resultingDescs)
 
 	//It is very important to check that we are maintaining
@@ -134,7 +134,7 @@ func testDescribe(t *testing.T, collector prometheus.Collector, measurer measure
 		if actualLabels, ok := resultingDescsMap[fqname]; ok {
 			for label := range expectedLabels {
 				//assert that the FQNAME has the same labels and values.
-				assert.Equal(t, expectedLabels[label], actualLabels[label])
+				assert.Equal(t, expectedLabels[label], actualLabels[label], "fqname: %s, label: %s", fqname, label)
 			}
 		} else {
 			t.Fatalf("actual missing fqname %s", fqname)

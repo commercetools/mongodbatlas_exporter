@@ -53,7 +53,7 @@ func NewProcessCollector(logger log.Logger, client a.Client, p *mongodbatlas.Pro
 			disk.Metadata = diskMetadata
 
 			//build list of prometheus metrics
-			err = disk.BuildPromMetrics(namespace, disksPrefix)
+			err = measurer.BuildPromMetrics(disk, namespace, disksPrefix)
 
 			if err != nil {
 				level.Warn(logger).Log("msg", "could not build disk prom metrics", "disk", disk.PartitionName, "process", p.ID, "group", p.GroupID)
@@ -72,14 +72,14 @@ func NewProcessCollector(logger log.Logger, client a.Client, p *mongodbatlas.Pro
 		return nil, httpErr
 	}
 
-	err := processMeasurer.BuildPromMetrics(namespace, processesPrefix)
+	err := measurer.BuildPromMetrics(processMeasurer, namespace, processesPrefix)
 
 	if err != nil {
 		return nil, err
 	}
 
 	for i := range processMeasurer.Disks {
-		err = processMeasurer.Disks[i].BuildPromMetrics(namespace, disksPrefix)
+		err = measurer.BuildPromMetrics(processMeasurer.Disks[i], namespace, disksPrefix)
 
 		if err != nil {
 			return nil, err

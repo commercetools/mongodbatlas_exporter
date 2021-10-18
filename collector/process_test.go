@@ -22,26 +22,43 @@ var processExpectedDescs = append(commontestExpectedDescs,
 	//Process Specific Metric Descriptions
 	[]string{prometheus.BuildFQName(namespace, processesPrefix, "info"), infoHelp},
 	[]string{prometheus.BuildFQName(namespace, processesPrefix, "query_executor_scanned_ratio"), "Original measurements.name: 'QUERY_EXECUTOR_SCANNED'. " + measurer.DEFAULT_HELP},
+)
+
+var diskExpectedDescs = [][]string{
 	//This disk metric should be attached to the sub-resource for disks on the process measurer
-	[]string{prometheus.BuildFQName(namespace, disksPrefix, "disk_partition_iops_read_ratio"), "Original measurements.name: 'DISK_PARTITION_IOPS_READ'. " + measurer.DEFAULT_HELP})
+	{prometheus.BuildFQName(namespace, disksPrefix, "disk_partition_iops_read_ratio"), "Original measurements.name: 'DISK_PARTITION_IOPS_READ'. " + measurer.DEFAULT_HELP},
+}
 
 //TestProcessDescribe extends TestDescribe found in common_test.go
 //The extension occurs because Process needs to describe the process
 //metrics _and_ the disk metrics. The basic collector would not handle
 //the disk describes.
 func TestProcessDescribe(t *testing.T) {
-	process := mongodbatlas.Process{}
+	process := mongodbatlas.Process{
+		Port: 2017,
+	}
 	mock := &MockClient{}
 	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
 
+	//make descriptions for process metrics
 	processMeasurer := measurer.ProcessFromMongodbAtlasProcess(&process)
+	processExpectedDescs := getExpectedDescs(processMeasurer, append(commontestExpectedDescs, processExpectedDescs...))
+
+	//make descriptions for disk metrics
+	disks, httpErr := mock.ListDisks(&process)
+
+	assert.Nil(t, httpErr)
+
+	diskMeasurer := measurer.DiskFromMongodbAtlasProcessDisk(&process, disks[0])
+
+	allExpectedDecs := append(processExpectedDescs, getExpectedDescs(diskMeasurer, diskExpectedDescs)...)
 
 	processCollector, err := NewProcessCollector(logger, mock, &process)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, processCollector)
 
-	testDescribe(t, processCollector, processMeasurer, processExpectedDescs)
+	testDescribe(t, processCollector, allExpectedDecs)
 }
 
 func TestProcessesCollector(t *testing.T) {
