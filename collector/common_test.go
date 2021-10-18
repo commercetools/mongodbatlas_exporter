@@ -17,10 +17,13 @@ const (
 	testPrefix = "stats"
 )
 
+//Tuples of FQNAME and Metric help
+//used by getExpectedDescs
 var commontestExpectedDescs = [][]string{
 	{prometheus.BuildFQName(namespace, testPrefix, "up"), upHelp},
 	{prometheus.BuildFQName(namespace, testPrefix, "scrapes_total"), totalScrapesHelp},
 	{prometheus.BuildFQName(namespace, testPrefix, "scrape_failures_total"), scrapeFailuresHelp},
+	//This disk metric should be attached to the sub-resource for disks on the process measurer
 	{prometheus.BuildFQName(namespace, testPrefix, "disk_partition_iops_read_ratio"), "Original measurements.name: 'DISK_PARTITION_IOPS_READ'. " + measurer.DEFAULT_HELP},
 }
 
