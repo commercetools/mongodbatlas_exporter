@@ -157,5 +157,12 @@ func (c *Process) Collect(ch chan<- prometheus.Metric) {
 // Describe implements prometheus.Collector.
 func (c *Process) Describe(ch chan<- *prometheus.Desc) {
 	c.basicCollector.Describe(ch)
+
+	//add the disk metrics
+	for _, d := range c.measurer.Disks {
+		for _, metric := range d.PromMetrics() {
+			ch <- metric.Desc
+		}
+	}
 	c.info.Describe(ch)
 }
