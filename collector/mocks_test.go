@@ -3,7 +3,6 @@ package collector
 import (
 	"mongodbatlas_exporter/measurer"
 	"mongodbatlas_exporter/model"
-	m "mongodbatlas_exporter/model"
 	a "mongodbatlas_exporter/mongodbatlas"
 
 	"go.mongodb.org/atlas/mongodbatlas"
@@ -36,8 +35,8 @@ func (c *MockClient) GetDiskMeasurementsMetadata(_ *measurer.Process, _ *measure
 	}, nil
 }
 
-func (c *MockClient) GetProcessMeasurements(_ measurer.Process) (map[m.MeasurementID]*m.Measurement, error) {
-	return make(map[m.MeasurementID]*m.Measurement), nil
+func (c *MockClient) GetProcessMeasurements(_ measurer.Process) (map[model.MeasurementID]*model.Measurement, error) {
+	return make(map[model.MeasurementID]*model.Measurement), nil
 }
 
 func (c *MockClient) ListDisks(*mongodbatlas.Process) ([]*mongodbatlas.ProcessDisk, *a.HTTPError) {
@@ -47,12 +46,12 @@ func (c *MockClient) ListDisks(*mongodbatlas.Process) ([]*mongodbatlas.ProcessDi
 }
 
 func (c *MockClient) GetProcessMeasurementsMetadata(p *measurer.Process) *a.HTTPError {
-	p.Metadata = map[m.MeasurementID]*m.MeasurementMetadata{
-		m.NewMeasurementID("TICKETS_AVAILABLE_READS", "SCALAR"): {
+	p.Metadata = map[model.MeasurementID]*model.MeasurementMetadata{
+		model.NewMeasurementID("TICKETS_AVAILABLE_READS", "SCALAR"): {
 			Name:  "TICKETS_AVAILABLE_READS",
 			Units: "SCALAR",
 		},
-		m.NewMeasurementID("QUERY_EXECUTOR_SCANNED", "SCALAR_PER_SECOND"): {
+		model.NewMeasurementID("QUERY_EXECUTOR_SCANNED", "SCALAR_PER_SECOND"): {
 			Name:  "QUERY_EXECUTOR_SCANNED",
 			Units: "SCALAR_PER_SECOND",
 		},

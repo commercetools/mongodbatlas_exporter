@@ -91,8 +91,6 @@ func descsToLabelMaps(descs []*prometheus.Desc) map[string]map[string]string {
 //and uniquely identifying Constant Labels.
 //If Variable labels are added to metrics in the future (such as HTTP Status Code) that should
 //be tested for as well.
-//However, since those fields are private the best way to test is using a deep equality function
-//from a testing framework.
 func TestDescribe(t *testing.T) {
 	assert := assert.New(t)
 	mock := &MockClient{}
