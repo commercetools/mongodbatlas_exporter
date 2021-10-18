@@ -1,7 +1,6 @@
 package collector
 
 import (
-	"errors"
 	"mongodbatlas_exporter/measurer"
 	m "mongodbatlas_exporter/model"
 	a "mongodbatlas_exporter/mongodbatlas"
@@ -14,33 +13,22 @@ import (
 	"go.mongodb.org/atlas/mongodbatlas"
 )
 
-func (c *MockClient) GetProcessMeasurements(_ measurer.Process) (map[m.MeasurementID]*m.Measurement, error) {
-	return make(map[m.MeasurementID]*m.Measurement), nil
-}
-
-func (c *MockClient) ListDisks(*mongodbatlas.Process) ([]*mongodbatlas.ProcessDisk, *a.HTTPError) {
-	return nil, &a.HTTPError{
-		StatusCode: 404,
-		Err:        errors.New("not found"),
-	}
-}
-
-func (c *MockClient) GetProcessMeasurementsMetadata(p *measurer.Process) *a.HTTPError {
-	p.Metadata = map[m.MeasurementID]*m.MeasurementMetadata{
-		m.NewMeasurementID("TICKETS_AVAILABLE_READS", "SCALAR"): {
-			Name:  "TICKETS_AVAILABLE_READS",
-			Units: "SCALAR",
-		},
-		m.NewMeasurementID("QUERY_EXECUTOR_SCANNED", "SCALAR_PER_SECOND"): {
-			Name:  "QUERY_EXECUTOR_SCANNED",
-			Units: "SCALAR_PER_SECOND",
-		},
-	}
-	return nil
-}
-
 func (c *MockClient) ListProcesses() ([]*mongodbatlas.Process, *a.HTTPError) {
 	return nil, nil
+}
+
+var processExpectedDescs = append(commontestExpectedDescs,
+	[]string{prometheus.BuildFQName(namespace, processesPrefix, "info"), infoHelp},
+	[]string{prometheus.BuildFQName(namespace, processesPrefix, "query_executor_scanned_ratio"), "Original measurements.name: 'QUERY_EXECUTOR_SCANNED'. " + measurer.DEFAULT_HELP},
+	//This disk metric should be attached to the sub-resource for disks on the process measurer
+	[]string{prometheus.BuildFQName(namespace, disksPrefix, "disk_partition_iops_read_ratio"), "Original measurements.name: 'DISK_PARTITION_IOPS_READ'. " + measurer.DEFAULT_HELP})
+
+//TestProcessDescribe extends TestDescribe found in common_test.go
+//The extension occurs because Process needs to describe the process
+//metrics _and_ the disk metrics. The basic collector would not handle
+//the disk describes.
+func TestProcessDescribe(t *testing.T) {
+
 }
 
 func TestProcessesCollector(t *testing.T) {

@@ -13,18 +13,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const (
-	testPrefix = "stats"
-)
-
 //Tuples of FQNAME and Metric help
 //used by getExpectedDescs
 var commontestExpectedDescs = [][]string{
-	{prometheus.BuildFQName(namespace, testPrefix, "up"), upHelp},
-	{prometheus.BuildFQName(namespace, testPrefix, "scrapes_total"), totalScrapesHelp},
-	{prometheus.BuildFQName(namespace, testPrefix, "scrape_failures_total"), scrapeFailuresHelp},
-	//This disk metric should be attached to the sub-resource for disks on the process measurer
-	{prometheus.BuildFQName(namespace, testPrefix, "disk_partition_iops_read_ratio"), "Original measurements.name: 'DISK_PARTITION_IOPS_READ'. " + measurer.DEFAULT_HELP},
+	{prometheus.BuildFQName(namespace, processesPrefix, "up"), upHelp},
+	{prometheus.BuildFQName(namespace, processesPrefix, "scrapes_total"), totalScrapesHelp},
+	{prometheus.BuildFQName(namespace, processesPrefix, "scrape_failures_total"), scrapeFailuresHelp},
+	//this one needs variable labels... anything past index 1 is a variable label.
+	{prometheus.BuildFQName(namespace, processesPrefix, "measurement_transformation_failures_total"), measurementTransformationFailuresHelp, "atlas_metric", "error"},
 }
 
 //getExpectedDescs is a mocking function to return the expected list of descriptions for a basic collector.
@@ -38,7 +34,8 @@ func getExpectedDescs(measurer measurer.Measurer, expected [][]string) []*promet
 		theDesc := expected[i]
 		fqName := theDesc[0]
 		help := theDesc[1]
-		result[i] = prometheus.NewDesc(fqName, help, nil, measurer.PromConstLabels())
+		variableLabels := theDesc[2:]
+		result[i] = prometheus.NewDesc(fqName, help, variableLabels, measurer.PromConstLabels())
 	}
 
 	return result
@@ -101,20 +98,11 @@ func TestDescribe(t *testing.T) {
 	mock := &MockClient{}
 	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
 
-	processMeasurer := measurer.Process{
-		Base: measurer.Base{
-			Metadata: getExpectedDiskMeasurementMetadata(),
-		},
-		Disks: []*measurer.Disk{
-			{
-				Base: measurer.Base{
-					Metadata: getExpectedDiskMeasurementMetadata(),
-				},
-			},
-		},
-	}
+	//For this test it is not important to populate the Process Measurer
+	//Specific tests for child collectors of the basic collector should cover this.
+	processMeasurer := measurer.Process{}
 
-	collector, err := newBasicCollector(logger, mock, &processMeasurer, testPrefix)
+	collector, err := newBasicCollector(logger, mock, &processMeasurer, processesPrefix)
 	assert.NotNil(collector)
 	assert.NoError(err)
 	descCh := make(chan *prometheus.Desc, 99)

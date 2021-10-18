@@ -1,28 +1,5 @@
 package collector
 
-import (
-	"mongodbatlas_exporter/measurer"
-	"mongodbatlas_exporter/model"
-)
-
-func (c *MockClient) GetDiskMeasurements(_ *measurer.Process, d *measurer.Disk) error {
-	d.Measurements = c.givenDisksMeasurements
-	return nil
-}
-
-func (c *MockClient) GetDiskMeasurementsMetadata(_ *measurer.Process, _ *measurer.Disk) (map[model.MeasurementID]*model.MeasurementMetadata, error) {
-	return map[model.MeasurementID]*model.MeasurementMetadata{
-		model.NewMeasurementID("DISK_PARTITION_IOPS_READ", "SCALAR_PER_SECOND"): {
-			Name:  "DISK_PARTITION_IOPS_READ",
-			Units: "SCALAR_PER_SECOND",
-		},
-		model.NewMeasurementID("DISK_PARTITION_SPACE_USED", "BYTES"): {
-			Name:  "DISK_PARTITION_SPACE_USED",
-			Units: "BYTES",
-		},
-	}, nil
-}
-
 // //TestDisksCollector initializes a disk collector and then checks
 // //that the scraped metrics output have the correct values, units, and labels.
 // //This is different from TestDesc which is checking the collector's Describe function.

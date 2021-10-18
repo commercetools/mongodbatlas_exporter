@@ -65,6 +65,7 @@ func (c *basicCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.up.Desc()
 	ch <- c.totalScrapes.Desc()
 	ch <- c.scrapeFailures.Desc()
+	c.measurementTransformationFailures.Describe(ch)
 
 	for _, metric := range c.measurer.PromMetrics() {
 		ch <- metric.Desc
