@@ -22,11 +22,13 @@ var processExpectedDescs = append(commontestExpectedDescs,
 	//Process Specific Metric Descriptions
 	[]string{prometheus.BuildFQName(namespace, processesPrefix, "info"), infoHelp},
 	[]string{prometheus.BuildFQName(namespace, processesPrefix, "query_executor_scanned_ratio"), "Original measurements.name: 'QUERY_EXECUTOR_SCANNED'. " + measurer.DEFAULT_HELP},
+	[]string{prometheus.BuildFQName(namespace, processesPrefix, "tickets_available_reads"), "Original measurements.name: 'TICKETS_AVAILABLE_READS'. " + measurer.DEFAULT_HELP},
 )
 
 var diskExpectedDescs = [][]string{
 	//This disk metric should be attached to the sub-resource for disks on the process measurer
 	{prometheus.BuildFQName(namespace, disksPrefix, "disk_partition_iops_read_ratio"), "Original measurements.name: 'DISK_PARTITION_IOPS_READ'. " + measurer.DEFAULT_HELP},
+	{prometheus.BuildFQName(namespace, disksPrefix, "disk_partition_space_used_bytes"), "Original measurements.name: 'DISK_PARTITION_SPACE_USED'. " + measurer.DEFAULT_HELP},
 }
 
 //TestProcessDescribe extends TestDescribe found in common_test.go
