@@ -123,6 +123,14 @@ func getGivenProcessesMeasurements(value1 *float32) []*measurer.Process {
 	}
 }
 
+type metricInput struct {
+	fqName              string
+	help                string
+	variableLabels      []string
+	variableLabelValues []string
+	value               float64
+}
+
 func getExpectedProcessesMetrics(value float64) []prometheus.Metric {
 	processMeasurements := measurer.Process{
 		Base: measurer.Base{
@@ -133,57 +141,57 @@ func getExpectedProcessesMetrics(value float64) []prometheus.Metric {
 		},
 		Version: "4.2.13",
 	}
-	processQueryExecutorScanned := prometheus.MustNewConstMetric(
-		prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, processesPrefix, "query_executor_scanned_ratio"),
-			"Original measurements.name: 'QUERY_EXECUTOR_SCANNED'. "+measurer.DEFAULT_HELP,
-			processMeasurements.PromVariableLabelNames(),
-			nil),
-		prometheus.GaugeValue,
-		value,
-		processMeasurements.PromVariableLabelValues()...)
-	processUp := prometheus.MustNewConstMetric(
-		prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, processesPrefix, "up"),
-			upHelp,
-			nil,
-			nil),
-		prometheus.GaugeValue,
-		1)
-	totalScrapes := prometheus.MustNewConstMetric(
-		prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, processesPrefix, "scrapes_total"),
-			totalScrapesHelp,
-			nil,
-			nil),
-		prometheus.CounterValue,
-		1)
-	scrapeFailures := prometheus.MustNewConstMetric(
-		prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, processesPrefix, "scrape_failures_total"),
-			scrapeFailuresHelp,
-			nil,
-			nil),
-		prometheus.CounterValue,
-		3)
-	measurementTransformationFailures := prometheus.MustNewConstMetric(
-		prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, processesPrefix, "measurement_transformation_failures_total"),
-			measurementTransformationFailuresHelp,
-			append((&measurer.Process{}).PromVariableLabelNames(), "atlas_metric", "error"),
-			nil),
-		prometheus.CounterValue,
-		1,
-		append(processMeasurements.PromVariableLabelValues(), "TICKETS_AVAILABLE_READS", "no_data")...,
-	)
-	processInfo := prometheus.MustNewConstMetric(
-		prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, processesPrefix, "info"),
-			infoHelp,
-			processMeasurements.PromVariableLabelNames(),
-			processMeasurements.PromConstLabels()),
-		prometheus.GaugeValue,
-		1,
-		processMeasurements.PromVariableLabelValues()...)
-	return []prometheus.Metric{processQueryExecutorScanned, processUp, totalScrapes, scrapeFailures, processInfo, measurementTransformationFailures}
+
+	inputs := []metricInput{
+		{
+			fqName: prometheus.BuildFQName(namespace, processesPrefix, "query_executor_scanned_ratio"),
+			help:   "Original measurements.name: 'QUERY_EXECUTOR_SCANNED'. " + measurer.DEFAULT_HELP,
+			value:  value,
+		},
+		{
+			fqName: prometheus.BuildFQName(namespace, processesPrefix, "up"),
+			help:   upHelp,
+			value:  1,
+		},
+		{
+			fqName: prometheus.BuildFQName(namespace, processesPrefix, "scrapes_total"),
+			help:   totalScrapesHelp,
+			value:  1,
+		},
+		{
+			fqName: prometheus.BuildFQName(namespace, processesPrefix, "scrape_failures_total"),
+			help:   scrapeFailuresHelp,
+			value:  3,
+		},
+		{
+			fqName:              prometheus.BuildFQName(namespace, processesPrefix, "measurement_transformation_failures_total"),
+			help:                measurementTransformationFailuresHelp,
+			variableLabels:      []string{"atlas_metric", "error"},
+			variableLabelValues: []string{"TICKETS_AVAILABLE_READS", "no_data"},
+			value:               1,
+		},
+		{
+			fqName: prometheus.BuildFQName(namespace, processesPrefix, "info"),
+			help:   infoHelp,
+			value:  1,
+		},
+	}
+
+	expectedMetrics := make([]prometheus.Metric, len(inputs))
+
+	for i := range inputs {
+		desc := prometheus.NewDesc(
+			inputs[i].fqName,
+			inputs[i].help,
+			inputs[i].variableLabels,
+			processMeasurements.PromConstLabels(),
+		)
+		expectedMetrics[i] = prometheus.MustNewConstMetric(
+			desc,
+			prometheus.GaugeValue,
+			inputs[i].value,
+			inputs[i].variableLabelValues...,
+		)
+	}
+	return expectedMetrics
 }
