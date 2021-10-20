@@ -17,6 +17,8 @@ func (c *MockClient) ListProcesses() ([]*mongodbatlas.Process, *a.HTTPError) {
 	return nil, nil
 }
 
+//TODO: this could be further refined and organized to drive table driven tests better.
+
 //CAUTION: you need to make sure that that the API values returned from mocks_test.go are all represented here correctly.
 //HELPWANTED: tie the mock API calls and the expected descriptions together better.
 //Include the descriptions from the basic collector.
@@ -32,6 +34,15 @@ var diskExpectedDescs = [][]string{
 	{prometheus.BuildFQName(namespace, disksPrefix, "disk_partition_iops_read_ratio"), "Original measurements.name: 'DISK_PARTITION_IOPS_READ'. " + measurer.DEFAULT_HELP},
 	{prometheus.BuildFQName(namespace, disksPrefix, "disk_partition_space_used_bytes"), "Original measurements.name: 'DISK_PARTITION_SPACE_USED'. " + measurer.DEFAULT_HELP},
 }
+
+var testAtlasProcess = mongodbatlas.Process{
+	GroupID:        "testProjectID",
+	ReplicaSetName: "testReplicaSet",
+	UserAlias:      "cluster-host:27017",
+	TypeName:       "REPLICA_PRIMARY",
+	Version:        "4.2.13",
+}
+var testProcessMeasurements = measurer.ProcessFromMongodbAtlasProcess(&testAtlasProcess)
 
 //TestProcessDescribe extends TestDescribe found in common_test.go
 //The extension occurs because Process needs to describe the process
@@ -72,9 +83,7 @@ func TestProcessesCollector(t *testing.T) {
 	mock.givenProcessesMeasurements = getGivenProcessesMeasurements(&value)
 	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
 
-	process := mongodbatlas.Process{}
-
-	processCollector, err := NewProcessCollector(logger, mock, &process)
+	processCollector, err := NewProcessCollector(logger, mock, &testAtlasProcess)
 	assert.NotNil(processCollector)
 	assert.NoError(err)
 
@@ -91,35 +100,27 @@ func TestProcessesCollector(t *testing.T) {
 }
 
 func getGivenProcessesMeasurements(value1 *float32) []*measurer.Process {
-	return []*measurer.Process{
-		{
-			Version: "4.2.13",
-			Base: measurer.Base{
-				ProjectID: "testProjectID",
-				RsName:    "testReplicaSet",
-				UserAlias: "cluster-host:27017",
-				TypeName:  "REPLICA_PRIMARY",
-				Measurements: map[m.MeasurementID]*m.Measurement{
-					"QUERY_EXECUTOR_SCANNED_SCALAR_PER_SECOND": {
-						DataPoints: []*mongodbatlas.DataPoints{
-							{
-								Timestamp: "2021-03-07T15:46:13Z",
-								Value:     nil,
-							},
-							{
-								Timestamp: "2021-03-07T15:47:13Z",
-								Value:     value1,
-							},
-						},
-						Units: m.SCALAR_PER_SECOND,
-					},
-					"TICKETS_AVAILABLE_READS_SCALAR": {
-						DataPoints: []*mongodbatlas.DataPoints{},
-						Units:      m.SCALAR,
-					},
+	testProcessMeasurements.Measurements = map[m.MeasurementID]*m.Measurement{
+		"QUERY_EXECUTOR_SCANNED_SCALAR_PER_SECOND": {
+			DataPoints: []*mongodbatlas.DataPoints{
+				{
+					Timestamp: "2021-03-07T15:46:13Z",
+					Value:     nil,
+				},
+				{
+					Timestamp: "2021-03-07T15:47:13Z",
+					Value:     value1,
 				},
 			},
+			Units: m.SCALAR_PER_SECOND,
 		},
+		"TICKETS_AVAILABLE_READS_SCALAR": {
+			DataPoints: []*mongodbatlas.DataPoints{},
+			Units:      m.SCALAR,
+		},
+	}
+	return []*measurer.Process{
+		testProcessMeasurements,
 	}
 }
 
@@ -132,16 +133,6 @@ type metricInput struct {
 }
 
 func getExpectedProcessesMetrics(value float64) []prometheus.Metric {
-	processMeasurements := measurer.Process{
-		Base: measurer.Base{
-			ProjectID: "testProjectID",
-			RsName:    "testReplicaSet",
-			UserAlias: "cluster-host:27017",
-			TypeName:  "REPLICA_PRIMARY",
-		},
-		Version: "4.2.13",
-	}
-
 	inputs := []metricInput{
 		{
 			fqName: prometheus.BuildFQName(namespace, processesPrefix, "query_executor_scanned_ratio"),
@@ -184,7 +175,7 @@ func getExpectedProcessesMetrics(value float64) []prometheus.Metric {
 			inputs[i].fqName,
 			inputs[i].help,
 			inputs[i].variableLabels,
-			processMeasurements.PromConstLabels(),
+			testProcessMeasurements.PromConstLabels(),
 		)
 		expectedMetrics[i] = prometheus.MustNewConstMetric(
 			desc,
