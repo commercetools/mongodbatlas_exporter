@@ -48,3 +48,23 @@ type Measurer interface {
 	PromMetrics() []*PromMetric
 	setPromMetrics([]*PromMetric)
 }
+
+//BuildPromMetrics builds the prometheus metrics fro a measurer.
+//It works better without a caller so that the PromVariableLabelNames and PromConstLabels are
+//correctly tied to the measurer. Otherwise this function would need to be redeclared exactly
+//for each measurer.
+func BuildPromMetrics(m Measurer, namespace, collectorPrefix string) error {
+	promMetrics := make([]*PromMetric, len(m.GetMetaData()))
+
+	i := 0
+	for _, metadata := range m.GetMetaData() {
+		metric, err := metadataToMetric(metadata, namespace, collectorPrefix, DEFAULT_HELP, m.PromVariableLabelNames(), m.PromConstLabels())
+		if err != nil {
+			return err
+		}
+		promMetrics[i] = metric
+		i++
+	}
+	m.setPromMetrics(promMetrics)
+	return nil
+}

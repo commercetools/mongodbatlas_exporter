@@ -62,26 +62,6 @@ func (b *Base) PromConstLabels() prometheus.Labels {
 	}
 }
 
-//BuildPromMetrics builds the prometheus metrics fro a measurer.
-//It works better without a caller so that the PromVariableLabelNames and PromConstLabels are
-//correctly tied to the measurer. Otherwise this function would need to be redeclared exactly
-//for each measurer.
-func BuildPromMetrics(m Measurer, namespace, collectorPrefix string) error {
-	promMetrics := make([]*PromMetric, len(m.GetMetaData()))
-
-	i := 0
-	for _, metadata := range m.GetMetaData() {
-		metric, err := metadataToMetric(metadata, namespace, collectorPrefix, DEFAULT_HELP, m.PromVariableLabelNames(), m.PromConstLabels())
-		if err != nil {
-			return err
-		}
-		promMetrics[i] = metric
-		i++
-	}
-	m.setPromMetrics(promMetrics)
-	return nil
-}
-
 //metadataToMetric transforms the measurement metadata we received from Atlas into a
 //prometheus compatible metric description.
 func metadataToMetric(metadata *model.MeasurementMetadata, namespace, collectorPrefix, defaultHelp string, variableLabels []string, constLabels prometheus.Labels) (*PromMetric, error) {
