@@ -17,6 +17,8 @@ func (c *MockClient) ListProcesses() ([]*mongodbatlas.Process, *a.HTTPError) {
 	return nil, nil
 }
 
+//CAUTION: you need to make sure that that the API values returned from mocks_test.go are all represented here correctly.
+//HELPWANTED: tie the mock API calls and the expected descriptions together better.
 //Include the descriptions from the basic collector.
 var processExpectedDescs = append(commontestExpectedDescs,
 	//Process Specific Metric Descriptions
