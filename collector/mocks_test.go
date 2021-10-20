@@ -8,15 +8,6 @@ import (
 	"go.mongodb.org/atlas/mongodbatlas"
 )
 
-func getExpectedDiskMeasurementMetadata() map[model.MeasurementID]*model.MeasurementMetadata {
-	return map[model.MeasurementID]*model.MeasurementMetadata{
-		model.NewMeasurementID("DISK_PARTITION_IOPS_READ", "SCALAR_PER_SECOND"): {
-			Name:  "DISK_PARTITION_IOPS_READ",
-			Units: "SCALAR_PER_SECOND",
-		},
-	}
-}
-
 func (c *MockClient) GetDiskMeasurements(_ *measurer.Process, d *measurer.Disk) error {
 	d.Measurements = c.givenDisksMeasurements
 	return nil
