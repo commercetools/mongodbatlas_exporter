@@ -58,7 +58,6 @@ func (b *Base) PromConstLabels() prometheus.Labels {
 		"project_id": b.ProjectID,
 		"rs_name":    b.RsName,
 		"user_alias": b.UserAlias,
-		"id":         b.ID,
 	}
 }
 
