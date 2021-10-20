@@ -42,7 +42,7 @@ func getExpectedDescs(measurer measurer.Measurer, expected [][]string) []*promet
 
 type MockClient struct {
 	givenDisksMeasurements     map[model.MeasurementID]*model.Measurement
-	givenProcessesMeasurements []*measurer.Process
+	givenProcessesMeasurements map[model.MeasurementID]*model.Measurement
 }
 
 type promTestMetric struct {
@@ -61,6 +61,25 @@ func convertMetrics(metrics []prometheus.Metric) map[string]promTestMetric {
 		desc := reflect.Indirect(metricValue.FieldByName("desc"))
 		fqName := desc.FieldByName("fqName").String()
 		constLabelPairs := desc.FieldByName("constLabelPairs")
+		labelPairs := metricValue.FieldByName("labelPairs")
+		variableLabels := desc.FieldByName("variableLabels")
+
+		//If metrics have variable labels you will have fqname collisions.
+		//append the variable label values to make a unique fqname.
+		//search all the label pairs
+		for i := 0; i < labelPairs.Len(); i++ {
+			labelPair := reflect.Indirect(labelPairs.Index(i))
+			labelName := reflect.Indirect(labelPair.FieldByName("Name")).String()
+			//for the variable labels
+			for ii := 0; ii < variableLabels.Len(); ii++ {
+				target := variableLabels.Index(ii).String()
+
+				if labelName == target {
+					fqName += reflect.Indirect(labelPair.FieldByName("Value")).String()
+				}
+			}
+
+		}
 
 		// for an fqName
 		if _, ok := result[fqName]; !ok {

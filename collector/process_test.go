@@ -42,7 +42,13 @@ var testAtlasProcess = mongodbatlas.Process{
 	TypeName:       "REPLICA_PRIMARY",
 	Version:        "4.2.13",
 }
-var testProcessMeasurements = measurer.ProcessFromMongodbAtlasProcess(&testAtlasProcess)
+var testProcessMeasurer = measurer.ProcessFromMongodbAtlasProcess(&testAtlasProcess)
+
+var testAtlasDisk = mongodbatlas.ProcessDisk{
+	PartitionName: "data",
+}
+
+var testDiskMeasurer = measurer.DiskFromMongodbAtlasProcessDisk(&testAtlasProcess, &testAtlasDisk)
 
 //TestProcessDescribe extends TestDescribe found in common_test.go
 //The extension occurs because Process needs to describe the process
@@ -81,6 +87,7 @@ func TestProcessesCollector(t *testing.T) {
 	value := float32(1.0499)
 	mock := &MockClient{}
 	mock.givenProcessesMeasurements = getGivenProcessesMeasurements(&value)
+	mock.givenDisksMeasurements = getGivenDiskMeasurements(&value)
 	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
 
 	processCollector, err := NewProcessCollector(logger, mock, &testAtlasProcess)
@@ -96,11 +103,13 @@ func TestProcessesCollector(t *testing.T) {
 		resultingMetrics = append(resultingMetrics, <-metricsCh)
 	}
 	assert.Equal(len(expectedMetrics), len(resultingMetrics))
-	assert.Equal(convertMetrics(expectedMetrics), convertMetrics(resultingMetrics))
+	expectedMap := convertMetrics(expectedMetrics)
+	resultingMap := convertMetrics(resultingMetrics)
+	assert.Equal(resultingMap, expectedMap)
 }
 
-func getGivenProcessesMeasurements(value1 *float32) []*measurer.Process {
-	testProcessMeasurements.Measurements = map[m.MeasurementID]*m.Measurement{
+func getGivenProcessesMeasurements(value1 *float32) map[m.MeasurementID]*m.Measurement {
+	return map[m.MeasurementID]*m.Measurement{
 		"QUERY_EXECUTOR_SCANNED_SCALAR_PER_SECOND": {
 			DataPoints: []*mongodbatlas.DataPoints{
 				{
@@ -119,9 +128,6 @@ func getGivenProcessesMeasurements(value1 *float32) []*measurer.Process {
 			Units:      m.SCALAR,
 		},
 	}
-	return []*measurer.Process{
-		testProcessMeasurements,
-	}
 }
 
 type metricInput struct {
@@ -130,10 +136,13 @@ type metricInput struct {
 	variableLabels      []string
 	variableLabelValues []string
 	value               float64
+	constLabels         prometheus.Labels
 }
 
 func getExpectedProcessesMetrics(value float64) []prometheus.Metric {
-	inputs := []metricInput{
+	//keep process and disk inputs in different slices
+	//so we can know how many of each we have.
+	processInputs := []metricInput{
 		{
 			fqName: prometheus.BuildFQName(namespace, processesPrefix, "query_executor_scanned_ratio"),
 			help:   "Original measurements.name: 'QUERY_EXECUTOR_SCANNED'. " + measurer.DEFAULT_HELP,
@@ -162,10 +171,39 @@ func getExpectedProcessesMetrics(value float64) []prometheus.Metric {
 			value:               1,
 		},
 		{
+			fqName:              prometheus.BuildFQName(namespace, processesPrefix, "measurement_transformation_failures_total"),
+			help:                measurementTransformationFailuresHelp,
+			variableLabels:      []string{"atlas_metric", "error"},
+			variableLabelValues: []string{"DISK_PARTITION_SPACE_USED", "no_data"},
+			value:               1,
+		},
+		{
 			fqName: prometheus.BuildFQName(namespace, processesPrefix, "info"),
 			help:   infoHelp,
 			value:  1,
 		},
+	}
+
+	diskInputs := []metricInput{
+		{
+			fqName: prometheus.BuildFQName(namespace, disksPrefix, "disk_partition_iops_read_ratio"),
+			help:   "Original measurements.name: 'DISK_PARTITION_IOPS_READ'. " + measurer.DEFAULT_HELP,
+			value:  value,
+		},
+	}
+	//copy inputs into a single slice for easy use.
+	inputs := make([]metricInput, len(processInputs)+len(diskInputs))
+	copy(inputs, processInputs)
+	copy(inputs[len(processInputs):], diskInputs)
+
+	//add processesMeasurer constant labels to process metrics.
+	for i := 0; i < len(processInputs); i++ {
+		inputs[i].constLabels = testProcessMeasurer.PromConstLabels()
+	}
+
+	//add diskMeasurer constant labels to disk metrics.
+	for i := len(processInputs); i < len(inputs); i++ {
+		inputs[i].constLabels = testDiskMeasurer.PromConstLabels()
 	}
 
 	expectedMetrics := make([]prometheus.Metric, len(inputs))
@@ -175,7 +213,7 @@ func getExpectedProcessesMetrics(value float64) []prometheus.Metric {
 			inputs[i].fqName,
 			inputs[i].help,
 			inputs[i].variableLabels,
-			testProcessMeasurements.PromConstLabels(),
+			inputs[i].constLabels,
 		)
 		expectedMetrics[i] = prometheus.MustNewConstMetric(
 			desc,

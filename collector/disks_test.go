@@ -32,33 +32,6 @@ package collector
 // 	}
 // }
 
-// func getGivenMeasurements(value1 *float32) []*measurer.Disk {
-// 	return []*measurer.Disk{
-// 		{
-// 			PartitionName: "testPartition",
-// 			Measurements: map[model.MeasurementID]*model.Measurement{
-// 				"DISK_PARTITION_IOPS_READ_SCALAR_PER_SECOND": {
-// 					DataPoints: []*mongodbatlas.DataPoints{
-// 						{
-// 							Timestamp: "2017-08-22T20:31:12Z",
-// 							Value:     nil,
-// 						},
-// 						{
-// 							Timestamp: "2017-08-22T20:31:14Z",
-// 							Value:     value1,
-// 						},
-// 					},
-// 					Units: model.SCALAR_PER_SECOND,
-// 				},
-// 				"DISK_PARTITION_SPACE_USED_BYTES": {
-// 					DataPoints: []*mongodbatlas.DataPoints{},
-// 					Units:      model.BYTES,
-// 				},
-// 			},
-// 		},
-// 	}
-// }
-
 // func getExpectedDisksMetrics(value float64) []prometheus.Metric {
 // 	measurer := measurer.Disk{
 // 		PartitionName: "testPartition",

@@ -27,7 +27,7 @@ func (c *MockClient) GetDiskMeasurementsMetadata(_ *measurer.Process, _ *measure
 }
 
 func (c *MockClient) GetProcessMeasurements(_ measurer.Process) (map[model.MeasurementID]*model.Measurement, error) {
-	return make(map[model.MeasurementID]*model.Measurement), nil
+	return c.givenProcessesMeasurements, nil
 }
 
 func (c *MockClient) ListDisks(*mongodbatlas.Process) ([]*mongodbatlas.ProcessDisk, *a.HTTPError) {
@@ -48,4 +48,26 @@ func (c *MockClient) GetProcessMeasurementsMetadata(p *measurer.Process) *a.HTTP
 		},
 	}
 	return nil
+}
+
+func getGivenDiskMeasurements(value1 *float32) map[model.MeasurementID]*model.Measurement {
+	return map[model.MeasurementID]*model.Measurement{
+		"DISK_PARTITION_IOPS_READ_SCALAR_PER_SECOND": {
+			DataPoints: []*mongodbatlas.DataPoints{
+				{
+					Timestamp: "2017-08-22T20:31:12Z",
+					Value:     nil,
+				},
+				{
+					Timestamp: "2017-08-22T20:31:14Z",
+					Value:     value1,
+				},
+			},
+			Units: model.SCALAR_PER_SECOND,
+		},
+		"DISK_PARTITION_SPACE_USED_BYTES": {
+			DataPoints: []*mongodbatlas.DataPoints{},
+			Units:      model.BYTES,
+		},
+	}
 }
