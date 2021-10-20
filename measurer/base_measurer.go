@@ -50,6 +50,10 @@ func (b *Base) setPromMetrics(metrics []*PromMetric) {
 	b.promMetrics = metrics
 }
 
+func (b *Base) PromInfoConstLabels() prometheus.Labels {
+	return b.PromConstLabels()
+}
+
 //PromLabels as with many other Process methods
 //version and type are excluded here as they are often not necessary
 //for identifying a particular instance and increase cardinality.

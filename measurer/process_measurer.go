@@ -1,8 +1,6 @@
 package measurer
 
 import (
-	"strconv"
-
 	"github.com/prometheus/client_golang/prometheus"
 	"go.mongodb.org/atlas/mongodbatlas"
 )
@@ -15,13 +13,10 @@ type Process struct {
 	Port    int
 }
 
-//PromLabels as with many other Process methods
-//version and type are excluded here as they are often not necessary
-//for identifying a particular instance and increase cardinality.
-func (p *Process) PromConstLabels() prometheus.Labels {
-	labels := p.Base.PromConstLabels()
+func (p *Process) PromInfoConstLabels() prometheus.Labels {
+	labels := p.Base.PromInfoConstLabels()
 	labels["version"] = p.Version
-	labels["port"] = strconv.FormatInt(int64(p.Port), 10)
+	labels["type"] = p.TypeName
 	return labels
 }
 

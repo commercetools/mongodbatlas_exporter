@@ -43,6 +43,8 @@ type Measurer interface {
 	//Returns slice of variable prometheus label names so that collectors can register necessary
 	//labels during describe.
 	PromVariableLabelNames() []string
+	//Info metrics have additional variable labels that need to be provided.
+	PromInfoConstLabels() prometheus.Labels
 	//Returns a map of prometheus.Labels used where constant labels should be used.
 	PromConstLabels() prometheus.Labels
 	PromMetrics() []*PromMetric

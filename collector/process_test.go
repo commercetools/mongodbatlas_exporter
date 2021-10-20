@@ -177,11 +177,6 @@ func getExpectedProcessesMetrics(value float64) []prometheus.Metric {
 			variableLabelValues: []string{"DISK_PARTITION_SPACE_USED", "no_data"},
 			value:               1,
 		},
-		{
-			fqName: prometheus.BuildFQName(namespace, processesPrefix, "info"),
-			help:   infoHelp,
-			value:  1,
-		},
 	}
 
 	diskInputs := []metricInput{
@@ -205,6 +200,13 @@ func getExpectedProcessesMetrics(value float64) []prometheus.Metric {
 	for i := len(processInputs); i < len(inputs); i++ {
 		inputs[i].constLabels = testDiskMeasurer.PromConstLabels()
 	}
+
+	inputs = append(inputs, metricInput{
+		fqName:      prometheus.BuildFQName(namespace, processesPrefix, "info"),
+		help:        infoHelp,
+		value:       1,
+		constLabels: testProcessMeasurer.PromInfoConstLabels(),
+	})
 
 	expectedMetrics := make([]prometheus.Metric, len(inputs))
 

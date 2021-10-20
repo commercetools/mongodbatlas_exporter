@@ -98,7 +98,7 @@ func NewProcessCollector(logger log.Logger, client a.Client, p *mongodbatlas.Pro
 			prometheus.GaugeOpts{
 				Name:        prometheus.BuildFQName(namespace, processesPrefix, "info"),
 				Help:        infoHelp,
-				ConstLabels: processMeasurer.PromConstLabels(),
+				ConstLabels: processMeasurer.PromInfoConstLabels(),
 			}),
 		measurer: *processMeasurer,
 	}
