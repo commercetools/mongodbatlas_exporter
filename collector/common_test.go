@@ -9,7 +9,6 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/prometheus/client_golang/prometheus"
-	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -46,13 +45,43 @@ type MockClient struct {
 	givenProcessesMeasurements []*measurer.Process
 }
 
-func convertMetrics(metrics []prometheus.Metric) map[string]string {
-	result := make(map[string]string, len(metrics))
+type promTestMetric struct {
+	FQNAME              string
+	ConstLabels         prometheus.Labels
+	VariableLabels      []string
+	VariableLabelValues []string
+	Value               float64
+}
+
+//convert metrics into a map of [fqname]map[]
+func convertMetrics(metrics []prometheus.Metric) map[string]promTestMetric {
+	result := make(map[string]promTestMetric, len(metrics))
 	for _, metric := range metrics {
-		desc := metric.Desc().String()
-		dtoMetric := dto.Metric{}
-		metric.Write(&dtoMetric)
-		result[desc] = dtoMetric.String()
+		metricValue := reflect.Indirect(reflect.ValueOf(metric))
+		desc := reflect.Indirect(metricValue.FieldByName("desc"))
+		fqName := desc.FieldByName("fqName").String()
+		constLabelPairs := desc.FieldByName("constLabelPairs")
+
+		// for an fqName
+		if _, ok := result[fqName]; !ok {
+			valueValue := metricValue.FieldByName("val")
+			testMetric := promTestMetric{
+				FQNAME:      fqName,
+				ConstLabels: make(prometheus.Labels, constLabelPairs.Len()),
+			}
+			result[fqName] = testMetric
+
+			if valueValue.IsValid() {
+				testMetric.Value = valueValue.Float()
+			}
+
+			//put all label pairs into a map for easier comparison.
+			for i := 0; i < constLabelPairs.Len(); i++ {
+				name := constLabelPairs.Index(i).Elem().FieldByName("Name").Elem().String()
+				value := constLabelPairs.Index(i).Elem().FieldByName("Value").Elem().String()
+				result[fqName].ConstLabels[name] = value
+			}
+		}
 	}
 	return result
 }
