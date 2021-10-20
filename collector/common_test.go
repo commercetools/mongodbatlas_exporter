@@ -71,6 +71,7 @@ func convertMetrics(metrics []prometheus.Metric) map[string]promTestMetric {
 			}
 			result[fqName] = testMetric
 
+			//TODO: There's an issue here if it's a measurement vec? Needs more looking into.
 			if valueValue.IsValid() {
 				testMetric.Value = valueValue.Float()
 			}
