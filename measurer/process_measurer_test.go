@@ -2,6 +2,12 @@ package measurer
 
 import "testing"
 
+//TestProcessInfoLabels checks that the
+//extra informational labels added to the "info"
+//measurement are added.
+//Current informational labels include:
+//version: the node version
+//type: the node's current replica status.
 func TestProcessInfoLabels(t *testing.T) {
 	b := Process{
 		Base: Base{
