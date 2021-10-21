@@ -6,6 +6,7 @@ import (
 	"mongodbatlas_exporter/registerer"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/go-kit/kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
@@ -50,7 +51,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	processRegister := registerer.NewProcessRegisterer(logger, client)
+	processRegister := registerer.NewProcessRegisterer(logger, client, time.Minute)
 
 	go processRegister.Observe()
 

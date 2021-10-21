@@ -29,11 +29,11 @@ type ProcessRegisterer struct {
 	logger     log.Logger
 }
 
-func NewProcessRegisterer(logger log.Logger, c a.Client) *ProcessRegisterer {
+func NewProcessRegisterer(logger log.Logger, c a.Client, reconcileDuration time.Duration) *ProcessRegisterer {
 	return &ProcessRegisterer{
 		client:     c,
 		logger:     logger,
-		ticker:     time.NewTicker(time.Minute),
+		ticker:     time.NewTicker(reconcileDuration),
 		collectors: make(map[string]prometheus.Collector),
 	}
 }
