@@ -17,8 +17,15 @@ type Base struct {
 	Measurements map[model.MeasurementID]*model.Measurement
 	Metadata     map[model.MeasurementID]*model.MeasurementMetadata
 	//These fields help uniquely identify processes and disks.
-	ProjectID, RsName, UserAlias, TypeName, Hostname, ID string
-	promMetrics                                          []*PromMetric
+	ProjectID, RsName, TypeName, Hostname string
+	//UserAlias is the "friendly" hostname that includes
+	//a user specified prefix.
+	UserAlias string
+	//ID is a unique hostname and port alloted by Atlas.
+	//This ID is used to retrieve an individual process
+	//from the API.
+	ID          string
+	promMetrics []*PromMetric
 }
 
 func (b *Base) GetMetaData() map[model.MeasurementID]*model.MeasurementMetadata {

@@ -1,6 +1,13 @@
 package measurer
 
-import "testing"
+import (
+	"strconv"
+	"strings"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"go.mongodb.org/atlas/mongodbatlas"
+)
 
 //TestProcessInfoLabels checks that the
 //extra informational labels added to the "info"
@@ -44,4 +51,33 @@ func TestProcessInfoLabels(t *testing.T) {
 			t.Fatalf("extra label %s", k)
 		}
 	}
+}
+
+func TestProcessFromMongodbAtlasProcess(t *testing.T) {
+	process := mongodbatlas.Process{
+		GroupID:        "9uf201u9ur1",
+		Hostname:       "atlas-xkljjzl.asdf.mongodb.net",
+		ID:             "atlas-xkljjzl.asdf.mongodb.net:27017",
+		ReplicaSetName: "atlas-xkljjzl-config-0",
+		UserAlias:      "aname-config-00-0.asdf.mongodb.net",
+		Port:           27017,
+	}
+
+	actual := ProcessFromMongodbAtlasProcess(&process)
+
+	//Ensure that the measurer appends the port to the useralias
+	//so that the useralias is unique.
+	//MONGOS processes often share the same host as their REPLICAS.
+	userAliasSplit := strings.Split(actual.UserAlias, ":")
+
+	assert.Equal(t, process.UserAlias, userAliasSplit[0])
+
+	port, err := strconv.Atoi(userAliasSplit[1])
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, process.Port, port)
+
 }
