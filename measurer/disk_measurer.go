@@ -19,14 +19,7 @@ func (d *Disk) PromConstLabels() prometheus.Labels {
 
 func DiskFromMongodbAtlasProcessDisk(p *mongodbatlas.Process, d *mongodbatlas.ProcessDisk) *Disk {
 	return &Disk{
-		Base: Base{
-			ProjectID: p.GroupID,
-			RsName:    p.ReplicaSetName,
-			UserAlias: p.UserAlias,
-			TypeName:  p.TypeName,
-			Hostname:  p.Hostname,
-			ID:        p.ID,
-		},
+		Base:          *baseFromMongodbAtlasProcess(p),
 		PartitionName: d.PartitionName,
 	}
 }

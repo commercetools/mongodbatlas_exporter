@@ -1,8 +1,6 @@
 package measurer
 
 import (
-	"fmt"
-
 	"github.com/prometheus/client_golang/prometheus"
 	"go.mongodb.org/atlas/mongodbatlas"
 )
@@ -27,17 +25,7 @@ func (p *Process) PromInfoConstLabels() prometheus.Labels {
 //identify prometheus metrics using labels.
 func ProcessFromMongodbAtlasProcess(p *mongodbatlas.Process) *Process {
 	return &Process{
-		Base: Base{
-			ProjectID: p.GroupID,
-			RsName:    p.ReplicaSetName,
-			//We append the port to the UserAlias so that UserAlias becomes unique.
-			//Often the MONGOS is hosted on the same host as the REPLICAS so only
-			//the port will make it unique.
-			UserAlias: p.UserAlias + fmt.Sprintf(":%d", p.Port),
-			TypeName:  p.TypeName,
-			Hostname:  p.Hostname,
-			ID:        p.ID,
-		},
+		Base:    *baseFromMongodbAtlasProcess(p),
 		Port:    p.Port,
 		Version: p.Version,
 	}

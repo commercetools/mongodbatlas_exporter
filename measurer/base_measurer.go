@@ -6,6 +6,7 @@ import (
 	"mongodbatlas_exporter/model"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"go.mongodb.org/atlas/mongodbatlas"
 )
 
 const (
@@ -97,4 +98,20 @@ func metadataToMetric(metadata *model.MeasurementMetadata, namespace, collectorP
 	}
 
 	return &metric, nil
+}
+
+//baseFromMongodbAtlasProcess populates the base fields for both disk
+//and process measurers.
+func baseFromMongodbAtlasProcess(p *mongodbatlas.Process) *Base {
+	return &Base{
+		ProjectID: p.GroupID,
+		RsName:    p.ReplicaSetName,
+		//We append the port to the UserAlias so that UserAlias becomes unique.
+		//Often the MONGOS is hosted on the same host as the REPLICAS so only
+		//the port will make it unique.
+		UserAlias: p.UserAlias + fmt.Sprintf(":%d", p.Port),
+		TypeName:  p.TypeName,
+		Hostname:  p.Hostname,
+		ID:        p.ID,
+	}
 }
