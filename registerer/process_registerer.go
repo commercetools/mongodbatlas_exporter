@@ -39,8 +39,6 @@ func NewProcessRegisterer(logger log.Logger, c a.Client, reconcileDuration time.
 }
 
 func (r *ProcessRegisterer) Observe() {
-	r.ticker = time.NewTicker(time.Minute)
-
 	//Register on first call.
 	r.registerAtlasProcesses()
 	//Keep the register up to date.
@@ -56,6 +54,21 @@ func (r *ProcessRegisterer) registerAtlasProcesses() {
 		metadataScrapeErrors.With(prometheus.Labels{"status": strconv.FormatInt(int64(err.StatusCode), 10)}).Inc()
 	}
 
+	currentCollectorKeys := make(map[string]bool, len(processes)) //tracks the existing processes for pruning.
+	for _, process := range processes {
+		collectorKey := process.ID + process.TypeName
+		currentCollectorKeys[collectorKey] = true
+	}
+
+	//unregister excess collectors
+	for key := range r.collectors {
+		//if the collector is no longer needed
+		if _, ok := currentCollectorKeys[key]; !ok {
+			prometheus.Unregister(r.collectors[key])
+			delete(r.collectors, key)
+		}
+	}
+
 	for _, process := range processes {
 		collector, err := collector.NewProcessCollector(r.logger, r.client, process)
 
@@ -64,11 +77,11 @@ func (r *ProcessRegisterer) registerAtlasProcesses() {
 		}
 		//the way to check for no longer existing hashes is to make a map[ID+TypeName]
 		//out of the current list and set difference it to this map.
-
 		collectorKey := process.ID + process.TypeName
 		if _, ok := r.collectors[collectorKey]; !ok {
-			r.collectors[process.ID+process.TypeName] = collector
+			r.collectors[collectorKey] = collector
 			prometheus.MustRegister(collector)
 		}
 	}
+
 }

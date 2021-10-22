@@ -1,13 +1,14 @@
 package registerer
 
 import (
+	"fmt"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/go-kit/log"
+	"github.com/onsi/gomega"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/atlas/mongodbatlas"
 )
 
@@ -19,6 +20,8 @@ import (
 //The Registerer should be able to ADD and REMOVE instances as
 //it needs to.
 func TestProcesRegisterer(t *testing.T) {
+	g := gomega.NewGomegaWithT(t)
+
 	expectedProcesses := []*mongodbatlas.Process{
 		{
 			GroupID:        "a",
@@ -44,7 +47,6 @@ func TestProcesRegisterer(t *testing.T) {
 
 	go reg.Observe()
 
-	time.Sleep(2 * time.Millisecond)
 	expectedProcessesMap := make(map[string]*mongodbatlas.Process)
 
 	for i := range expectedProcesses {
@@ -52,27 +54,59 @@ func TestProcesRegisterer(t *testing.T) {
 		expectedProcessesMap[p.ID+p.TypeName] = p
 	}
 
-	assertCollectorMapInSync(t, expectedProcessesMap, reg.collectors)
+	timeout := 10 * time.Second
+	registeredCount := func() int {
+		return len(reg.collectors)
+	}
+
+	g.Eventually(registeredCount).Should(gomega.Equal(len(expectedProcessesMap)))
+	g.Eventually(assertCollectorMapInSync(g, expectedProcessesMap, reg.collectors)).Should(gomega.Succeed())
 
 	//remove b
 	client.processes = expectedProcesses[0:1]
 	b := expectedProcesses[1]
 	delete(expectedProcessesMap, b.ID+b.TypeName)
 
-	time.Sleep(2 * time.Millisecond)
-	assertCollectorMapInSync(t, expectedProcessesMap, reg.collectors)
+	g.Eventually(registeredCount, timeout, 1*time.Millisecond).Should(gomega.Equal(len(expectedProcessesMap)))
+	g.Eventually(assertCollectorMapInSync(g, expectedProcessesMap, reg.collectors)).Should(gomega.Succeed())
 
+	//re-add b
+	client.processes = expectedProcesses
+	expectedProcessesMap[b.ID+b.TypeName] = b
+
+	g.Eventually(registeredCount, timeout, 1*time.Millisecond).Should(gomega.Equal(len(expectedProcessesMap)))
+	g.Eventually(assertCollectorMapInSync(g, expectedProcessesMap, reg.collectors)).Should(gomega.Succeed())
+
+	//simulate re-election
+	expectedProcesses[0].TypeName = "SECONDARY"
+	expectedProcesses[1].TypeName = "PRIMARY"
+
+	expectedProcessesMap = make(map[string]*mongodbatlas.Process, len(expectedProcesses))
+	for i := range expectedProcesses {
+		p := expectedProcesses[i]
+		expectedProcessesMap[p.ID+p.TypeName] = p
+	}
+	g.Eventually(registeredCount, timeout, 1*time.Millisecond).Should(gomega.Equal(len(expectedProcessesMap)))
+	g.Eventually(assertCollectorMapInSync(g, expectedProcessesMap, reg.collectors)).Should(gomega.Succeed())
 }
 
-func assertCollectorMapInSync(t *testing.T, expected map[string]*mongodbatlas.Process, collectors map[string]prometheus.Collector) {
-	//all the keys in reg collectors should be expected.
-	for key := range collectors {
-		_, ok := expected[key]
-		assert.True(t, ok, "key %s not expected for registerer", key)
+func assertCollectorMapInSync(g *gomega.GomegaWithT, expected map[string]*mongodbatlas.Process, collectors map[string]prometheus.Collector) func() error {
+	return func() error {
+		//all the keys in reg collectors should be expected.
+		for key := range collectors {
+			_, ok := expected[key]
+			if !ok {
+				return fmt.Errorf("key %s not expected for registerer", key)
+			}
+		}
+
+		for key := range expected {
+			_, ok := collectors[key]
+			if !ok {
+				return fmt.Errorf("reg.collectors is missing key %s", key)
+			}
+		}
+		return nil
 	}
 
-	for key := range expected {
-		_, ok := collectors[key]
-		assert.True(t, ok, "reg.collectors is missing key %s", key)
-	}
 }
