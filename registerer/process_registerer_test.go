@@ -45,8 +45,6 @@ func TestProcesRegisterer(t *testing.T) {
 
 	reg := NewProcessRegisterer(logger, &client, time.Millisecond)
 
-	go reg.Observe()
-
 	expectedProcessesMap := make(map[string]*mongodbatlas.Process)
 
 	for i := range expectedProcesses {
@@ -54,28 +52,26 @@ func TestProcesRegisterer(t *testing.T) {
 		expectedProcessesMap[p.ID+p.TypeName] = p
 	}
 
-	timeout := 10 * time.Second
-	registeredCount := func() int {
-		return len(reg.collectors)
-	}
-
-	g.Eventually(registeredCount).Should(gomega.Equal(len(expectedProcessesMap)))
-	g.Eventually(assertCollectorMapInSync(g, expectedProcessesMap, reg.collectors)).Should(gomega.Succeed())
+	reg.registerAtlasProcesses()
+	g.Expect(len(reg.collectors)).Should(gomega.Equal(len(expectedProcessesMap)))
+	g.Expect(assertCollectorMapInSync(g, expectedProcessesMap, reg.collectors)).Should(gomega.Succeed())
 
 	//remove b
 	client.processes = expectedProcesses[0:1]
 	b := expectedProcesses[1]
 	delete(expectedProcessesMap, b.ID+b.TypeName)
 
-	g.Eventually(registeredCount, timeout, 1*time.Millisecond).Should(gomega.Equal(len(expectedProcessesMap)))
-	g.Eventually(assertCollectorMapInSync(g, expectedProcessesMap, reg.collectors)).Should(gomega.Succeed())
+	reg.registerAtlasProcesses()
+	g.Expect(len(reg.collectors)).Should(gomega.Equal(len(expectedProcessesMap)))
+	g.Expect(assertCollectorMapInSync(g, expectedProcessesMap, reg.collectors)).Should(gomega.Succeed())
 
 	//re-add b
 	client.processes = expectedProcesses
 	expectedProcessesMap[b.ID+b.TypeName] = b
 
-	g.Eventually(registeredCount, timeout, 1*time.Millisecond).Should(gomega.Equal(len(expectedProcessesMap)))
-	g.Eventually(assertCollectorMapInSync(g, expectedProcessesMap, reg.collectors)).Should(gomega.Succeed())
+	reg.registerAtlasProcesses()
+	g.Expect(len(reg.collectors)).Should(gomega.Equal(len(expectedProcessesMap)))
+	g.Expect(assertCollectorMapInSync(g, expectedProcessesMap, reg.collectors)).Should(gomega.Succeed())
 
 	//simulate re-election
 	expectedProcesses[0].TypeName = "SECONDARY"
@@ -86,27 +82,25 @@ func TestProcesRegisterer(t *testing.T) {
 		p := expectedProcesses[i]
 		expectedProcessesMap[p.ID+p.TypeName] = p
 	}
-	g.Eventually(registeredCount, timeout, 1*time.Millisecond).Should(gomega.Equal(len(expectedProcessesMap)))
-	g.Eventually(assertCollectorMapInSync(g, expectedProcessesMap, reg.collectors)).Should(gomega.Succeed())
+	reg.registerAtlasProcesses()
+	g.Expect(len(reg.collectors)).Should(gomega.Equal(len(expectedProcessesMap)))
+	g.Expect(assertCollectorMapInSync(g, expectedProcessesMap, reg.collectors)).Should(gomega.Succeed())
 }
 
-func assertCollectorMapInSync(g *gomega.GomegaWithT, expected map[string]*mongodbatlas.Process, collectors map[string]prometheus.Collector) func() error {
-	return func() error {
-		//all the keys in reg collectors should be expected.
-		for key := range collectors {
-			_, ok := expected[key]
-			if !ok {
-				return fmt.Errorf("key %s not expected for registerer", key)
-			}
+func assertCollectorMapInSync(g *gomega.GomegaWithT, expected map[string]*mongodbatlas.Process, collectors map[string]prometheus.Collector) error {
+	//all the keys in reg collectors should be expected.
+	for key := range collectors {
+		_, ok := expected[key]
+		if !ok {
+			return fmt.Errorf("key %s not expected for registerer", key)
 		}
-
-		for key := range expected {
-			_, ok := collectors[key]
-			if !ok {
-				return fmt.Errorf("reg.collectors is missing key %s", key)
-			}
-		}
-		return nil
 	}
 
+	for key := range expected {
+		_, ok := collectors[key]
+		if !ok {
+			return fmt.Errorf("reg.collectors is missing key %s", key)
+		}
+	}
+	return nil
 }
