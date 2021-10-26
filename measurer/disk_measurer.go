@@ -13,7 +13,7 @@ type Disk struct {
 
 func (d *Disk) PromConstLabels() prometheus.Labels {
 	labels := d.Base.PromConstLabels()
-	labels["paritition_name"] = d.PartitionName
+	labels["partition_name"] = d.PartitionName
 	return labels
 }
 
