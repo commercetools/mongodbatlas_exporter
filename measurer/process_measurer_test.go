@@ -53,6 +53,12 @@ func TestProcessInfoLabels(t *testing.T) {
 	}
 }
 
+// TestProcessFromMongodbAtlasProcess examines the conversion
+// of a mongodbatlas.Process (result from the Atlas API) into a
+// measurer.Process.
+// The test is specifically interested in examining that particular
+// fields are transformed and or translated correctly from mongodbatlas.Process
+// into measurer.Process
 func TestProcessFromMongodbAtlasProcess(t *testing.T) {
 	process := mongodbatlas.Process{
 		GroupID:        "9uf201u9ur1",
@@ -63,12 +69,12 @@ func TestProcessFromMongodbAtlasProcess(t *testing.T) {
 		Port:           27017,
 	}
 
-	actual := ProcessFromMongodbAtlasProcess(&process)
+	processMeasurer := ProcessFromMongodbAtlasProcess(&process)
 
 	//Ensure that the measurer appends the port to the useralias
 	//so that the useralias is unique.
 	//MONGOS processes often share the same host as their REPLICAS.
-	userAliasSplit := strings.Split(actual.UserAlias, ":")
+	userAliasSplit := strings.Split(processMeasurer.UserAlias, ":")
 
 	assert.Equal(t, process.UserAlias, userAliasSplit[0])
 
