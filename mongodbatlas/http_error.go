@@ -1,5 +1,12 @@
 package mongodbatlas
 
+/*
+* HTTPError provides additional information
+* about an HTTP Error Response such as the status code.
+* The intention is to use this to propagate status codes
+* up to a prometheus collector to report the number of errors.
+ */
+
 import "fmt"
 
 type HTTPError struct {
