@@ -70,15 +70,15 @@ func (r *ProcessRegisterer) registerAtlasProcesses() {
 	}
 
 	for _, process := range processes {
-		collector, err := collector.NewProcessCollector(r.logger, r.client, process)
-
-		if err != nil {
-			level.Debug(r.logger).Log("msg", "failed collector instantation", "err", err)
-		}
 		//the way to check for no longer existing hashes is to make a map[ID+TypeName]
 		//out of the current list and set difference it to this map.
 		collectorKey := process.ID + process.TypeName
 		if _, ok := r.collectors[collectorKey]; !ok {
+			collector, err := collector.NewProcessCollector(r.logger, r.client, process)
+
+			if err != nil {
+				level.Debug(r.logger).Log("msg", "failed collector instantation", "err", err)
+			}
 			r.collectors[collectorKey] = collector
 			prometheus.MustRegister(collector)
 		}
