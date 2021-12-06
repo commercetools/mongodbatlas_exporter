@@ -10,6 +10,7 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/mongodb-forks/digest"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.mongodb.org/atlas/mongodbatlas"
 )
 
@@ -43,11 +44,17 @@ type Client interface {
 // NewClient returns wrapper around mongodbatlas.Client, which implements necessary functionality
 func NewClient(logger log.Logger, publicKey string, privateKey string, projectID string, atlasClusters []string) (*AtlasClient, error) {
 	t := digest.NewTransport(publicKey, privateKey)
+
 	tc, err := t.Client()
 	if err != nil {
 		level.Error(logger).Log("msg", "failed to auth", "err", err)
 		return nil, errors.New("can't create mongodbatlas client, failed to auth, please check credentials")
 	}
+
+	//instrument the http client's transport by composing several promtthp RoundTrippers over the
+	//digest Transport. All of these are RoundTrippers.
+	tc.Transport = promhttp.InstrumentRoundTripperCounter(requestCounter, tc.Transport)
+
 	mongodbatlasClient := mongodbatlas.NewClient(tc)
 	level.Debug(logger).Log("msg", "mongodbatlas client was successfully created")
 
