@@ -78,6 +78,7 @@ func (r *ProcessRegisterer) registerAtlasProcesses() {
 
 			if err != nil {
 				level.Debug(r.logger).Log("msg", "failed collector instantation", "err", err)
+				break
 			}
 			r.collectors[collectorKey] = collector
 			prometheus.MustRegister(collector)
