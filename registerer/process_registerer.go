@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	backoff "github.com/cenkalti/backoff/v4"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
@@ -41,8 +42,22 @@ func NewProcessRegisterer(logger log.Logger, c a.Client, reconcileDuration time.
 func (r *ProcessRegisterer) Observe() {
 	//Register on first call.
 	r.registerAtlasProcesses()
+	unbuffered := make(chan time.Time)
+
+	//forward to an unbuffered channel
+	//so we drop ticks if we're still processing
+	//the previous tick.
+	go func() {
+		for t := range r.ticker.C {
+			select {
+			case unbuffered <- t:
+			default:
+			}
+		}
+	}()
+
 	//Keep the register up to date.
-	for range r.ticker.C {
+	for range unbuffered {
 		r.registerAtlasProcesses()
 	}
 }
@@ -74,14 +89,25 @@ func (r *ProcessRegisterer) registerAtlasProcesses() {
 		//out of the current list and set difference it to this map.
 		collectorKey := process.ID + process.TypeName
 		if _, ok := r.collectors[collectorKey]; !ok {
-			collector, err := collector.NewProcessCollector(r.logger, r.client, process)
+			b := backoff.NewExponentialBackOff()
+
+			b.InitialInterval = time.Second * 5
+			b.MaxElapsedTime = 1 * time.Minute
+
+			err := backoff.Retry(func() error {
+				collector, err := collector.NewProcessCollector(r.logger, r.client, process)
+				if err != nil {
+					return err
+				}
+				r.collectors[collectorKey] = collector
+				prometheus.MustRegister(collector)
+				return nil
+			}, b)
 
 			if err != nil {
 				level.Debug(r.logger).Log("msg", "failed collector instantation", "err", err)
-				break
 			}
-			r.collectors[collectorKey] = collector
-			prometheus.MustRegister(collector)
+
 		}
 	}
 
