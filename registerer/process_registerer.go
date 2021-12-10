@@ -24,41 +24,26 @@ var (
 )
 
 type ProcessRegisterer struct {
-	collectors map[string]prometheus.Collector
-	ticker     *time.Ticker
-	client     a.Client
-	logger     log.Logger
+	collectors        map[string]prometheus.Collector
+	reconcileInterval time.Duration
+	client            a.Client
+	logger            log.Logger
 }
 
-func NewProcessRegisterer(logger log.Logger, c a.Client, reconcileDuration time.Duration) *ProcessRegisterer {
+func NewProcessRegisterer(logger log.Logger, c a.Client, reconcileInterval time.Duration) *ProcessRegisterer {
 	return &ProcessRegisterer{
-		client:     c,
-		logger:     logger,
-		ticker:     time.NewTicker(reconcileDuration),
-		collectors: make(map[string]prometheus.Collector),
+		client:            c,
+		logger:            logger,
+		reconcileInterval: reconcileInterval,
+		collectors:        make(map[string]prometheus.Collector),
 	}
 }
 
 func (r *ProcessRegisterer) Observe() {
-	//Register on first call.
-	r.registerAtlasProcesses()
-	unbuffered := make(chan time.Time)
-
-	//forward to an unbuffered channel
-	//so we drop ticks if we're still processing
-	//the previous tick.
-	go func() {
-		for t := range r.ticker.C {
-			select {
-			case unbuffered <- t:
-			default:
-			}
-		}
-	}()
-
 	//Keep the register up to date.
-	for range unbuffered {
+	for {
 		r.registerAtlasProcesses()
+		time.Sleep(r.reconcileInterval)
 	}
 }
 
