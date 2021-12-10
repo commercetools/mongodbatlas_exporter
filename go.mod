@@ -3,6 +3,7 @@ module mongodbatlas_exporter
 go 1.16
 
 require (
+	github.com/cenkalti/backoff/v4 v4.1.2
 	github.com/go-kit/kit v0.10.0
 	github.com/go-kit/log v0.2.0
 	github.com/mongodb-forks/digest v1.0.3

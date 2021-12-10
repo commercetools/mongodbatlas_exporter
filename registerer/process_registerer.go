@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	backoff "github.com/cenkalti/backoff/v4"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
@@ -23,27 +24,26 @@ var (
 )
 
 type ProcessRegisterer struct {
-	collectors map[string]prometheus.Collector
-	ticker     *time.Ticker
-	client     a.Client
-	logger     log.Logger
+	collectors        map[string]prometheus.Collector
+	reconcileInterval time.Duration
+	client            a.Client
+	logger            log.Logger
 }
 
-func NewProcessRegisterer(logger log.Logger, c a.Client, reconcileDuration time.Duration) *ProcessRegisterer {
+func NewProcessRegisterer(logger log.Logger, c a.Client, reconcileInterval time.Duration) *ProcessRegisterer {
 	return &ProcessRegisterer{
-		client:     c,
-		logger:     logger,
-		ticker:     time.NewTicker(reconcileDuration),
-		collectors: make(map[string]prometheus.Collector),
+		client:            c,
+		logger:            logger,
+		reconcileInterval: reconcileInterval,
+		collectors:        make(map[string]prometheus.Collector),
 	}
 }
 
 func (r *ProcessRegisterer) Observe() {
-	//Register on first call.
-	r.registerAtlasProcesses()
 	//Keep the register up to date.
-	for range r.ticker.C {
+	for {
 		r.registerAtlasProcesses()
+		time.Sleep(r.reconcileInterval)
 	}
 }
 
@@ -74,13 +74,25 @@ func (r *ProcessRegisterer) registerAtlasProcesses() {
 		//out of the current list and set difference it to this map.
 		collectorKey := process.ID + process.TypeName
 		if _, ok := r.collectors[collectorKey]; !ok {
-			collector, err := collector.NewProcessCollector(r.logger, r.client, process)
+			b := backoff.NewExponentialBackOff()
+
+			b.InitialInterval = time.Second * 5
+			b.MaxElapsedTime = 1 * time.Minute
+
+			err := backoff.Retry(func() error {
+				collector, err := collector.NewProcessCollector(r.logger, r.client, process)
+				if err != nil {
+					return err
+				}
+				r.collectors[collectorKey] = collector
+				prometheus.MustRegister(collector)
+				return nil
+			}, b)
 
 			if err != nil {
 				level.Debug(r.logger).Log("msg", "failed collector instantation", "err", err)
 			}
-			r.collectors[collectorKey] = collector
-			prometheus.MustRegister(collector)
+
 		}
 	}
 
