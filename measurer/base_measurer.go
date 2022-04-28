@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"mongodbatlas_exporter/collector/transformer"
 	"mongodbatlas_exporter/model"
+	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"go.mongodb.org/atlas/mongodbatlas"
@@ -18,7 +19,7 @@ type Base struct {
 	Measurements map[model.MeasurementID]*model.Measurement
 	Metadata     map[model.MeasurementID]*model.MeasurementMetadata
 	//These fields help uniquely identify processes and disks.
-	ProjectID, RsName, TypeName, Hostname string
+	ProjectID, RsName, TypeName, Hostname, Sharded_cluster, Project_name string
 	//UserAlias is the "friendly" hostname that includes
 	//a user specified prefix.
 	UserAlias string
@@ -67,9 +68,12 @@ func (b *Base) PromInfoConstLabels() prometheus.Labels {
 //for identifying a particular instance and increase cardinality.
 func (b *Base) PromConstLabels() prometheus.Labels {
 	return prometheus.Labels{
-		"project_id": b.ProjectID,
-		"rs_name":    b.RsName,
-		"user_alias": b.UserAlias,
+		"project_id":     b.ProjectID,
+		"rs_name":        b.RsName,
+		"user_alias":     b.UserAlias,
+		"process_state":  b.TypeName,
+		"shared_cluster": b.Sharded_cluster,
+		"project_name":   b.Project_name,
 	}
 }
 
@@ -109,9 +113,11 @@ func baseFromMongodbAtlasProcess(p *mongodbatlas.Process) *Base {
 		//We append the port to the UserAlias so that UserAlias becomes unique.
 		//Often the MONGOS is hosted on the same host as the REPLICAS so only
 		//the port will make it unique.
-		UserAlias: p.UserAlias + fmt.Sprintf(":%d", p.Port),
-		TypeName:  p.TypeName,
-		Hostname:  p.Hostname,
-		ID:        p.ID,
+		UserAlias:       p.UserAlias + fmt.Sprintf(":%d", p.Port),
+		TypeName:        p.TypeName,
+		Hostname:        p.Hostname,
+		ID:              p.ID,
+		Sharded_cluster: strings.Split(p.ReplicaSetName, "-")[0] + "-" + strings.Split(p.ReplicaSetName, "-")[1],
+		Project_name:    strings.Split(p.UserAlias, "-")[0],
 	}
 }
