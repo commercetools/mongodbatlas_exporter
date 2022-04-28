@@ -66,6 +66,7 @@ func (b *Base) PromInfoConstLabels() prometheus.Labels {
 //PromLabels as with many other Process methods
 //version and type are excluded here as they are often not necessary
 //for identifying a particular instance and increase cardinality.
+//Typename,Sharded_cluster,projectname labels added
 func (b *Base) PromConstLabels() prometheus.Labels {
 	return prometheus.Labels{
 		"project_id":     b.ProjectID,
@@ -114,10 +115,10 @@ func baseFromMongodbAtlasProcess(p *mongodbatlas.Process) *Base {
 		//Often the MONGOS is hosted on the same host as the REPLICAS so only
 		//the port will make it unique.
 		UserAlias:       p.UserAlias + fmt.Sprintf(":%d", p.Port),
-		TypeName:        p.TypeName,
+		TypeName:        strings.Split(p.TypeName, "_")[1],
 		Hostname:        p.Hostname,
 		ID:              p.ID,
 		Sharded_cluster: strings.Split(p.ReplicaSetName, "-")[0] + "-" + strings.Split(p.ReplicaSetName, "-")[1],
-		Project_name:    strings.Split(p.UserAlias, "-")[0],
+		Project_name:    strings.Split(p.UserAlias, "-")[0] + "-" + strings.Split(p.UserAlias, "-")[1],
 	}
 }
