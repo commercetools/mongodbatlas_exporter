@@ -1,5 +1,11 @@
 # Mongodbatlas exporter for Prometheus
 
+## Archived: NO LONGER MAINTAINED
+
+Atlas released a prometheus integration that provides much more reliable metrics without having to circumvent API rate limits.
+
+See [_Introducing MongoDB’s Prometheus Monitoring Integration_](https://www.mongodb.com/blog/post/introducing-mongodb-prometheus-integration).
+
 ## Limitations
 
 - Exporter supports up to 30 processes (mongod and mongos)
