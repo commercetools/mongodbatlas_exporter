@@ -79,6 +79,7 @@ func (c *AtlasClient) ListProcesses() ([]*mongodbatlas.Process, *HTTPError) {
 	if len(c.atlasClusters) == 0 {
 		return processes, nil
 	}
+	//slice
 	filteredProceses := make([]*mongodbatlas.Process, 0, len(processes))
 	for _, clusterName := range c.atlasClusters {
 		for _, process := range processes {

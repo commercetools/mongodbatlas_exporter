@@ -20,6 +20,7 @@ type Base struct {
 	Metadata     map[model.MeasurementID]*model.MeasurementMetadata
 	//These fields help uniquely identify processes and disks.
 	ProjectID, RsName, TypeName, Hostname, Sharded_cluster, Project_name string
+	ProcessType                                                          string
 	//UserAlias is the "friendly" hostname that includes
 	//a user specified prefix.
 	UserAlias string
@@ -75,6 +76,7 @@ func (b *Base) PromConstLabels() prometheus.Labels {
 		"process_state":  b.TypeName,
 		"shared_cluster": b.Sharded_cluster,
 		"project_name":   b.Project_name,
+		"process_type":   b.ProcessType,
 	}
 }
 
@@ -108,6 +110,17 @@ func metadataToMetric(metadata *model.MeasurementMetadata, namespace, collectorP
 //baseFromMongodbAtlasProcess populates the base fields for both disk
 //and process measurers.
 func baseFromMongodbAtlasProcess(p *mongodbatlas.Process) *Base {
+	//based on replicasetname get process_type
+	pt := strings.Split(p.ReplicaSetName, "-")[2]
+	if pt == "shard" {
+		pt = "mongod"
+	}
+	if pt == "config" {
+		pt = "configsvr"
+	}
+	if pt == "mongos" {
+		pt = "mongos"
+	}
 	return &Base{
 		ProjectID: p.GroupID,
 		RsName:    p.ReplicaSetName,
@@ -118,7 +131,8 @@ func baseFromMongodbAtlasProcess(p *mongodbatlas.Process) *Base {
 		TypeName:        strings.Split(p.TypeName, "_")[1],
 		Hostname:        p.Hostname,
 		ID:              p.ID,
-		Sharded_cluster: strings.Split(p.ReplicaSetName, "-")[0] + "-" + strings.Split(p.ReplicaSetName, "-")[1],
-		Project_name:    strings.Split(p.UserAlias, "-")[0] + "-" + strings.Split(p.UserAlias, "-")[1],
+		Sharded_cluster: strings.Join(strings.Split(p.ReplicaSetName, "-")[:2], "-"),
+		Project_name:    strings.Join(strings.Split(p.UserAlias, "-")[:2], "-"),
+		ProcessType:     pt,
 	}
 }
