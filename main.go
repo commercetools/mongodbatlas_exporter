@@ -58,7 +58,19 @@ func main() {
 	up.Set(1)
 
 	http.Handle("/metrics", promhttp.Handler())
+	//health
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		if _, err := fmt.Fprint(w, "health is ok"); err != nil {
+			level.Error(logger).Log("msg", "failed to start the http server", "err", err)
 
+		}
+	})
+	//ready
+	http.HandleFunc("/ready", func(w http.ResponseWriter, r *http.Request) {
+		if _, err := fmt.Fprint(w, "readyness is good"); err != nil {
+			level.Error(logger).Log("msg", "failed to start the http server", "err", err)
+		}
+	})
 	if err := http.ListenAndServe(*listenAddress, nil); err != nil {
 		level.Error(logger).Log("msg", "failed to start the http server", "err", err)
 		os.Exit(1)
